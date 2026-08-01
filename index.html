@@ -199,13 +199,13 @@ const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
    La crisis es corta y siempre desemboca en otra cosa: nadie vive diez años en
    crisis, y si el juego lo permitiera los números se irían a la hiperinflación. */
 const REGIMENES = {
-  estable: { infl:[.004,.016], dura:[18,40], atraso:[.00,.06],  pSalto:.010, salto:[.05,.12],
+  estable: { infl:[.004,.016], dura:[18,40], atraso:[.02,.14],  pSalto:.010, salto:[.05,.12],
              tasaPF:[1.02,1.35], parit:[.85,1.15], pDespido:.005, sale:["alta","volatil"] },
-  alta:    { infl:[.022,.045], dura:[16,32], atraso:[.02,.10],  pSalto:.045, salto:[.10,.22],
+  alta:    { infl:[.022,.045], dura:[16,32], atraso:[.06,.22],  pSalto:.045, salto:[.10,.22],
              tasaPF:[.88,1.12],  parit:[.68,1.00], pDespido:.010, sale:["estable","volatil","crisis"] },
-  volatil: { infl:[.015,.038], dura:[12,24], atraso:[-.04,.10], pSalto:.075, salto:[.14,.30],
+  volatil: { infl:[.015,.038], dura:[12,24], atraso:[-.06,.16], pSalto:.075, salto:[.14,.30],
              tasaPF:[.82,1.18],  parit:[.65,1.02], pDespido:.013, sale:["alta","estable","crisis"] },
-  crisis:  { infl:[.045,.085], dura:[5,12],  atraso:[-.10,.02], pSalto:.10,  salto:[.18,.38],
+  crisis:  { infl:[.045,.085], dura:[5,12],  atraso:[-.26,-.04], pSalto:.10,  salto:[.18,.38],
              tasaPF:[.62,.92],   parit:[.55,.85], pDespido:.028, sale:["alta","estable"] },
 };
 const NOMBRES_REG = Object.keys(REGIMENES);
@@ -633,10 +633,17 @@ function avanzarMes(){
      Lo que sí hace es moverse distinto — se atrasa durante meses (y ahí el que
      está dolarizado pierde contra los precios) y después corrige de un saque.
      Sin esto, el juego enseñaría "comprá dólares y listo", que es mentira. */
+  /* Los dos coeficientes de abajo definen dónde se planta el tipo de cambio real
+     a la larga: el equilibrio está donde (1 − tcr) · reversión = atraso · pisada.
+     Con reversión .16 y pisada .20, queda entre 0,92 y 1,05 según el régimen, que
+     es lo correcto — el dólar oscila alrededor de la paridad, no debajo.
+     Con los valores anteriores (.05 y .45) el equilibrio en inflación alta daba
+     0,46: el dólar perdía la mitad de su valor real y la escena del dólar caro
+     no se disparaba nunca. */
   let d = S.inflMes                          // sigue a los precios
         + rnd(-.010, .010)                   // ruido
-        - (S.tcr - 1) * .050                 // vuelve a la paridad si se fue lejos
-        - rnd(R.atraso[0], R.atraso[1]) * .45; // el gobierno de turno lo pisa
+        - (S.tcr - 1) * .16                  // vuelve a la paridad si se fue lejos
+        - rnd(R.atraso[0], R.atraso[1]) * .20; // el gobierno de turno lo pisa
   // Cuanto más atrasado está, más fuerte corrige cuando finalmente corrige.
   if(Math.random() < R.pSalto && S.tcr < 1.10){
     d += rnd(R.salto[0], R.salto[1]) * (1 + Math.max(0, 1 - S.tcr) * 1.8);
@@ -744,9 +751,17 @@ function avanzarMes(){
      lo que de verdad la mueve son las decisiones. Si el desgaste pasivo pesara
      más que lo que elegís, daría lo mismo elegir. */
   const a = aire();
-  animo(a < 0 ? -2.6 : a < 1 ? -1.1 : a < 3 ? -.15 : .45);
-  if(S.deuda > S.sueldo) animo(-1.1);
-  if(!S.trabajo) animo(-2.2);
+  /* La zona de 1 a 3 meses de aire es neutra a propósito: es donde vive medio
+     país y no tiene por qué desgastarte sola. Antes drenaba, y como los primeros
+     tres años transcurren ahí, la partida empezaba con un pozo del que ya no se
+     salía: el final más común era "con plata y cansado" y el ánimo alto casi no
+     existía. Ahora arriba de 3 se recupera de verdad. */
+  animo(a < 0 ? -2.2 : a < 1 ? -1.0 : a < 3 ? 0 : a < 12 ? .55 : .9);
+  if(S.deuda > S.sueldo) animo(-.8);
+  if(!S.trabajo) animo(-1.8);
+  // Lo que elegiste para cuidarte sigue rindiendo, no fue un gasto de un día.
+  if(S.flags.terapia) animo(.3);
+  if(S.flags.pareja)  animo(.2);
   S.animoSuma += S.animo; S.animoN++;
   S.animoCero = S.animo <= 2 ? S.animoCero + 1 : 0;
 
@@ -1442,7 +1457,7 @@ const EVENTOS = [
   ]
 },
 {
-  id:"dolar-barato", repetible:true, peso:2, cond: () => S.tcr < .86,
+  id:"dolar-barato", repetible:true, peso:2, cond: () => S.tcr < .88,
   texto: () => `<p>Hace meses que el dólar no se mueve. Está a ${fmt(S.dolar)} y todo lo demás
   subió bastante más que eso.</p>
   <p>En el trabajo lo dicen como si fuera una buena noticia: "por lo menos el dólar está tranquilo".</p>`,
@@ -1464,7 +1479,7 @@ const EVENTOS = [
   ]
 },
 {
-  id:"dolar-caro", repetible:true, peso:2, cond: () => S.tcr > 1.14 && S.usd > 100,
+  id:"dolar-caro", repetible:true, peso:2, cond: () => S.tcr > 1.10 && S.usd > 100,
   texto: () => `<p>Saltó todo. El dólar está a ${fmt(S.dolar)} y en el grupo de WhatsApp
   no se habla de otra cosa.</p>
   <p>Tenés ${usd(S.usd)} guardados que de golpe valen un montón de pesos.</p>`,
