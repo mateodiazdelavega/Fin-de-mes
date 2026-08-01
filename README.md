@@ -139,6 +139,27 @@ Ahí está el motivo para jugar de nuevo.
 Los **10 logros** están puestos en lo difícil de sostener diez años: no deber nunca, pasar
 una crisis sin endeudarte, no vender los dólares en el pico, terminar con el ánimo alto.
 
+## La gente que vuelve
+
+Antes cada escena traía "un amigo" distinto y las repeticiones se sentían repeticiones.
+Ahora vuelven cuatro personas con nombre y arco propio a lo largo de la década:
+
+- **Nacho**, el que siempre tiene el dato. Eufórico con la pantalla en verde, después deja
+  el laburo para operar, después se funde — o la pega, una de cada cinco veces. Su historia
+  avanza sola, la acompañes o no: la lección es que el que te muestra la captura nunca te
+  muestra la de seis meses después. Cuatro capítulos.
+- **Vale**, compañera de trabajo que sabe de plata. Te explica la tasa real con una planilla
+  de Excel, después se va a otra empresa por el doble, después te ofrece entrar donde está.
+  Tres capítulos.
+- **Fede**, el que arranca cosas. Te pide prestado, después aparece con facturas y la
+  conversación incómoda pendiente, después te ofrece entrar en su negocio. Tres capítulos.
+- **Susana**, tu vieja. El primer sueldo, el mes que no le cierra, y cuando internan a tu
+  viejo.
+
+Las continuaciones esperan al menos año y medio, para que se sientan años y no escenas
+seguidas. Medido sobre 600 partidas: se ven en promedio 3,13 de los 4 capítulos de Nacho,
+2,4 de los 3 de Vale y 2,5 de los 3 de Fede.
+
 ## La colección
 
 Los conceptos y logros **no se reinician** al empezar otra vida: se acumulan en el
@@ -170,14 +191,12 @@ Sobre 700 partidas jugadas al azar, el 71% llega a los diez años, 19% termina e
 
 ## Estado
 
-Prototipo, 42 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
+Prototipo, 49 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
 jugar otra partida?** Si la respuesta es no, nada del resto importa.
 
 Falta: la revisión anual todavía no te muestra qué hizo cada instrumento en los últimos
 doce meses —que es justo el dato que necesitás para decidir bien—, las escenas de pareja e
-hijos son más flacas que las de plata, todos los personajes son anónimos ("un amigo", "un
-conocido") cuando tener nombre y volver tres veces en la década los haría memorables, y no
-hay sonido.
+hijos son más flacas que las de plata, y no hay sonido.
 
 ---
 
