@@ -118,11 +118,34 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
 .logro-tic{color:var(--oro); font-size:11px; flex:0 0 auto}
 .logro-d{display:block; font-size:13px; color:var(--muted); margin-top:2px}
 
+/* ---------- revisión anual de cartera ---------- */
+.rubro{padding:12px 0; border-bottom:1px solid var(--line)}
+.rubro:last-of-type{border-bottom:none}
+.rubro-cab{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:9px}
+.rubro-n{font-size:14.5px}
+.rubro-v{font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
+.rubro-hoy{color:var(--dim); font-size:11.5px}
+.rubro-ctrl{display:flex; align-items:center; gap:10px}
+.paso{width:34px; height:34px; flex:0 0 auto; border-radius:9px; border:1px solid var(--line);
+  background:var(--card2); color:var(--text); font-size:17px; font-family:inherit; cursor:pointer;
+  line-height:1; display:flex; align-items:center; justify-content:center}
+.paso:hover:not([disabled]){border-color:#4a4038; color:var(--oro)}
+.paso[disabled]{opacity:.3; cursor:not-allowed}
+.rubro-barra{flex:1; height:6px; background:var(--line); border-radius:3px; overflow:hidden}
+.rubro-barra i{display:block; height:100%; background:var(--oro); transition:width .18s ease}
+.rubro-pct{font-size:13.5px; font-variant-numeric:tabular-nums; width:38px; text-align:right; flex:0 0 auto}
+.rubro-total{margin-top:14px; padding-top:11px; border-top:1px solid var(--line);
+  font-size:13px; text-align:right}
+.rubro-total.ok{color:var(--verde)} .rubro-total.mal{color:var(--oro)}
+.btn[disabled]{opacity:.4; cursor:not-allowed}
+
 /* ---------- aviso de desbloqueo ---------- */
 .desbloqueo{display:flex; gap:11px; align-items:flex-start; background:var(--card2);
   border:1px solid var(--line); border-left:2px solid var(--oro); border-radius:10px;
   padding:13px 15px; margin-bottom:12px}
 .desbloqueo .ico{color:var(--oro); font-size:12px; flex:0 0 auto; line-height:1.5}
+.desbloqueo.nuevo-instr{border-left-color:var(--verde)}
+.desbloqueo.nuevo-instr .ico, .desbloqueo.nuevo-instr .ttl{color:var(--verde)}
 .desbloqueo .cab{font-size:11px; letter-spacing:.09em; text-transform:uppercase;
   color:var(--dim); margin-bottom:5px}
 .desbloqueo .ttl{font-family:Georgia,serif; font-size:16px; color:var(--oro); margin-bottom:5px}
@@ -188,6 +211,31 @@ const REGIMENES = {
 const NOMBRES_REG = Object.keys(REGIMENES);
 const DOLAR_BASE = 1350;   // referencia para medir el atraso cambiario
 
+/* ==========================================================================
+   LA ESCALERA
+   Los instrumentos no están todos disponibles desde el minuto uno: se van
+   habilitando según cuánto aire tengas. No es una traba artificial — es la
+   regla que más plata le ahorra a la gente y que nadie respeta: primero el
+   colchón, después invertir. Querer comprar bonos sin tener para el mes que
+   viene no es ser audaz, es no haber entendido el orden.
+   ========================================================================== */
+const ESCALERA = [
+  { id:"plazo",  aire:.5, n:"Plazo fijo",
+    d:"Le prestás plata al banco por treinta días. A veces le gana a la inflación, a veces no, pero pierde mucho menos que quedarte quieto." },
+  { id:"dolar",  aire:1.5, n:"Dólares",
+    d:"Dejás de perder contra la inflación y pasás a depender de otra cosa: que el dólar acompañe. Es cambiar de riesgo, no sacártelo de encima." },
+  { id:"bono",   aire:4, n:"Bonos del país",
+    d:"Le prestás plata al Estado y te paga un cupón todos los meses. Paga tanto justamente porque puede no pagarte: cuando hay elecciones, el precio se mueve más que cualquier otra cosa." },
+  { id:"indice", aire:6, n:"Índice global",
+    d:"Comprás un pedacito de las quinientas empresas más grandes del mundo, en un solo movimiento. A diez años sube; en el medio se cae un 30% y hay que bancarlo sin vender." },
+];
+
+/* ---------- valuaciones ---------- */
+// El bono y el índice cotizan en dólares; acá se pasan a pesos para sumarlos.
+const valorBono   = () => S.bonoVN * (S.bonoPrecio / 100) * S.dolar;
+const valorIndice = () => S.indiceUn * S.indicePrecio * S.dolar;
+const tieneAcceso = id => !!S.instrumentos[id];
+
 let S = null;   // estado de la partida
 
 function nuevaPartida(origen){
@@ -195,6 +243,16 @@ function nuevaPartida(origen){
     mes: 0, edad: 22,
     origen: origen.id,
     pesos: origen.pesos, usd: 0, plazo: 0, plazoMeses: 0, deuda: 0,
+    /* Bono del país, medido en valor nominal. Paga cupón todos los meses y
+       puede dejar de pagarte para siempre. Precio en % de la paridad. */
+    bonoVN: 0, bonoPrecio: 58, bonoDefault: false, cuponTotal: 0,
+    // Índice global (el S&P vía CEDEAR), en dólares, base 100.
+    indiceUn: 0, indicePrecio: 100, mesesCrash: 0,
+    /* Ciclo electoral: la fecha marcada en el calendario donde cambia el país.
+       Es lo único que el jugador sabe que va a pasar sin saber cómo sale. */
+    aEleccion: 22, gobierno: pick(["ajuste","gasto"]), elecciones: 0,
+    eleccionPendiente: null,          // resultado esperando que lo cuente una escena
+    instrumentos: {},                 // escalones de la escalera ya habilitados
     cuotas: [],                       // {monto, restantes, desc}
     sueldo: origen.sueldo, gastos: origen.gastos, trabajo: origen.trabajo,
     // Por más que te achiques, hay un piso: comer, viajar, el techo.
@@ -212,7 +270,7 @@ function nuevaPartida(origen){
     // acumuladores del mes en curso
     inMes: 0, egMes: 0, avisos: [], detalle: [],
     // carteras sombra: mismo flujo de caja, tres estrategias distintas
-    simPesos: 0, simPlazo: 0, simUsd: 0,
+    simPesos: 0, simPlazo: 0, simUsd: 0, simIndice: 0,
     // métricas
     animoSuma: 0, animoN: 0, mesesEnRojo: 0, picoDeuda: 0, aporteTotal: 0,
     historia: [],                     // decisiones tomadas, para el epílogo
@@ -220,6 +278,7 @@ function nuevaPartida(origen){
     nuevos: [],                       // desbloqueos pendientes de avisar
     animoCero: 0,                     // meses seguidos con el ánimo en el piso
     finTemprano: null,                // si la partida se corta antes de los 10 años
+    ultimaRevision: -1,               // último cierre de año ya revisado
     golpes: 0, suertes: 0,            // cuántas veces te pegó y te sonrió el azar
   };
   return S;
@@ -248,6 +307,12 @@ const CONCEPTOS = {
   liquidez:    { n:"Liquidez", t:"Qué tan rápido podés convertir algo en plata sin perder valor. Un depto vale mucho y no te salva el martes que se rompe la heladera. Tener todo bien invertido y nada disponible es un problema disfrazado de virtud." },
   seguro:      { n:"Transferencia de riesgo", t:"Pagar poco todos los meses para que otro se coma la pérdida grande. Un seguro tiene rendimiento negativo esperado y aun así conviene, porque lo que te funde no es el promedio: es la cola." },
   estafa:      { n:"Si es demasiado bueno", t:"Rendimientos altos, garantizados y sin riesgo no existen juntos. Cuando alguien te ofrece los tres, la plata que reparte es la de los que entraron después. Vos podés ser cualquiera de los dos grupos." },
+  riesgoPais:  { n:"Prima de riesgo", t:"Por qué un bono argentino paga 14% en dólares y uno alemán 2%. No es que Argentina sea generosa: es lo que hay que ofrecer para que alguien acepte la chance de no cobrar. El rendimiento alto es el precio del miedo, no un regalo." },
+  default:     { n:"Default y quita", t:"Cuando el Estado no puede pagar, no desaparece la deuda: se reestructura. Te cambian tus bonos por otros que valen bastante menos. Ahí se ve que el cupón que venías cobrando era el pago por bancarte exactamente esto." },
+  volatilidad: { n:"Volatilidad", t:"Cuánto se mueve algo mientras vas. El índice global sube a diez años y en el medio se cae un 30% dos o tres veces. La caída no es el problema; el problema es vender adentro de la caída." },
+  horizonte:   { n:"Horizonte", t:"Cuánto tiempo podés dejar la plata quieta. Es lo que decide en qué podés invertir, mucho más que cuánta tenés. Plata que necesitás en seis meses no va a acciones, por más que las acciones rindan." },
+  cicloElec:   { n:"Riesgo político", t:"Antes de una elección todos los activos del país cotizan con miedo, porque nadie sabe qué viene. No se gana adivinando el resultado: se gana estando parado de una forma que sobreviva a cualquiera de los dos." },
+  concentr:    { n:"Concentración", t:"Poner mucho en una sola cosa. Cuando sale bien parece visión; cuando sale mal parece obvio que era una locura. Es la misma decisión en los dos casos — lo único que cambió fue la suerte." },
 };
 
 /* ==========================================================================
@@ -280,10 +345,15 @@ function lograr(id){
 /* ---------- lecturas derivadas ---------- */
 const fechaMes  = () => (MES_INICIAL + S.mes) % 12;
 const fechaAnio = () => ANIO_INICIAL + Math.floor((MES_INICIAL + S.mes) / 12);
-const patrimonio = () => S.pesos + S.usd * S.dolar + S.plazo - S.deuda;
+const patrimonio = () => S.pesos + S.usd * S.dolar + S.plazo
+                       + valorBono() + valorIndice() - S.deuda;
 const cuotasMes  = () => S.cuotas.reduce((a,c) => a + c.monto, 0);
 const egresoFijo = () => S.gastos + cuotasMes();
 const aire       = () => egresoFijo() > 0 ? patrimonio() / egresoFijo() : 0;
+/* El aire que abre escalones cuenta solo lo que podés usar mañana. Un bono no
+   te salva el martes que se rompe la heladera: eso es liquidez, no patrimonio. */
+const aireLiquido = () => egresoFijo() > 0
+  ? (S.pesos + S.usd * S.dolar + S.plazo - S.deuda) / egresoFijo() : 0;
 /* La tasa a veces le gana a la inflación y a veces no, según el momento.
    Igual que el dólar: ninguna opción es siempre la ganadora. */
 /* Más de cinco años de aire ya no cambia nada en la práctica: el número deja de
@@ -342,6 +412,42 @@ function venderUsd(cant){
   S.usd -= c; S.pesos += p;
   return p;
 }
+/* Comprar y vender bonos e índice. Todo pasa por pesos y todo paga comisión:
+   mover plata nunca es gratis, y esa es media razón por la que reacomodar la
+   cartera todos los meses es peor negocio que dejarla quieta. */
+const COMISION = .008;
+
+function comprarBono(montoPesos){
+  const m = Math.min(montoPesos, Math.max(0, S.pesos));
+  if(m <= 0 || S.bonoPrecio <= 0) return 0;
+  S.pesos -= m;
+  const vn = (m * (1 - COMISION)) / S.dolar / (S.bonoPrecio / 100);
+  S.bonoVN += vn;
+  return vn;
+}
+function venderBono(vn){
+  const v = Math.min(vn, S.bonoVN);
+  if(v <= 0) return 0;
+  const p = v * (S.bonoPrecio / 100) * S.dolar * (1 - COMISION);
+  S.bonoVN -= v; S.pesos += p;
+  return p;
+}
+function comprarIndice(montoPesos){
+  const m = Math.min(montoPesos, Math.max(0, S.pesos));
+  if(m <= 0) return 0;
+  S.pesos -= m;
+  const un = (m * (1 - COMISION)) / S.dolar / S.indicePrecio;
+  S.indiceUn += un;
+  return un;
+}
+function venderIndice(un){
+  const u = Math.min(un, S.indiceUn);
+  if(u <= 0) return 0;
+  const p = u * S.indicePrecio * S.dolar * (1 - COMISION);
+  S.indiceUn -= u; S.pesos += p;
+  return p;
+}
+
 function ponerPlazo(monto){
   const m = Math.min(monto, Math.max(0, S.pesos));
   if(m <= 0) return 0;
@@ -355,6 +461,152 @@ function enCuotas(total, n, desc){
 function recordar(t){ S.historia.push({ mes: S.mes, t }); }
 
 /* ==========================================================================
+   CARTERA
+   ========================================================================== */
+const RUBROS = [
+  { id:"pesos",  n:"Pesos en la cuenta", corto:"Pesos",   siempre:true },
+  { id:"plazo",  n:"Plazo fijo",         corto:"Plazo"    },
+  { id:"dolar",  n:"Dólares",            corto:"Dólares"  },
+  { id:"bono",   n:"Bono del país",      corto:"Bono"     },
+  { id:"indice", n:"Índice global",      corto:"Índice"   },
+];
+const rubrosAbiertos = () => RUBROS.filter(r => r.siempre || tieneAcceso(r.id));
+
+function valores(){
+  return { pesos: Math.max(0, S.pesos), plazo: S.plazo,
+           dolar: S.usd * S.dolar, bono: valorBono(), indice: valorIndice() };
+}
+const totalCartera = () => Object.values(valores()).reduce((a,b) => a + b, 0);
+
+/* Mueve solo la diferencia entre lo que tenés y lo que querés tener. Vender todo
+   y recomprar pagaría comisión sobre el total — que es, de paso, la razón por la
+   que reacomodar la cartera seguido es peor negocio que dejarla quieta. */
+function rebalancear(objetivo){
+  const v = valores(), total = totalCartera();
+  if(total <= 0) return 0;
+  let movido = 0;
+  const meta = k => total * (objetivo[k] || 0) / 100;
+
+  for(const k of ["plazo","dolar","bono","indice"]){
+    const exceso = v[k] - meta(k);
+    if(exceso <= 1) continue;
+    movido += exceso;
+    if(k === "plazo"){ const x = Math.min(exceso, S.plazo); S.plazo -= x; S.pesos += x; }
+    if(k === "dolar")  venderUsd(exceso / S.dolar);
+    if(k === "bono")   venderBono(exceso / ((S.bonoPrecio / 100) * S.dolar));
+    if(k === "indice") venderIndice(exceso / (S.indicePrecio * S.dolar));
+  }
+  for(const k of ["plazo","dolar","bono","indice"]){
+    const falta = Math.min(meta(k) - v[k], Math.max(0, S.pesos));
+    if(falta <= 1) continue;
+    movido += falta;
+    if(k === "plazo")  ponerPlazo(falta);
+    if(k === "dolar")  comprarUsd(falta);
+    if(k === "bono")   comprarBono(falta);
+    if(k === "indice") comprarIndice(falta);
+  }
+  return movido;
+}
+
+/* ==========================================================================
+   MERCADOS
+   ========================================================================== */
+
+/* Cuánto vale el bono según quién gobierna y cómo viene el país. La lógica que
+   tiene que quedar clara jugando: el bono paga mucho porque puede no pagarte.
+   No es plata gratis, es que te están pagando por bancarte el riesgo. */
+const BONO_OBJETIVO = { estable: 94, alta: 70, volatil: 61, crisis: 30 };
+
+/* La elección es el único momento del juego con fecha conocida. Lo que no se
+   sabe es el resultado ni, sobre todo, cómo va a reaccionar el mercado.
+
+   Decisión de diseño importante: el precio NO se mueve según quién ganó, sino
+   según cuánto se apartó de lo que ya estaba descontado. Si el bono subiera
+   siempre con un signo político, el juego enseñaría a apostarle a ese signo —
+   que es falso y además convertiría esto en un panfleto. Acá la sorpresa manda,
+   y por eso no se puede farmear el resultado. */
+function resolverEleccion(){
+  S.elecciones++;
+  const desgaste = (S.regimen === "crisis" || S.regimen === "alta") ? .74 : .42;
+  const cambia = Math.random() < desgaste;
+  const anterior = S.gobierno;
+  if(cambia) S.gobierno = anterior === "ajuste" ? "gasto" : "ajuste";
+
+  S.regimen = S.gobierno === "ajuste"
+    ? pick(["estable","estable","volatil","crisis"])
+    : pick(["alta","alta","volatil","estable"]);
+  S.mesesRegimen = rndI(REGIMENES[S.regimen].dura[0], REGIMENES[S.regimen].dura[1]);
+
+  const tilt = S.gobierno === "ajuste" ? .16 : -.16;
+  const sorpresa = tilt + rnd(-.55, .55);
+  const antes = S.bonoPrecio;
+  S.bonoPrecio = clamp(S.bonoPrecio * (1 + sorpresa), 8, 118);
+  S.aEleccion = 48;
+
+  return { cambia, gobierno: S.gobierno, anterior,
+           antes, ahora: S.bonoPrecio,
+           subioBono: S.bonoPrecio > antes };
+}
+
+function moverMercados(R){
+  // La elección se resuelve sola; la escena que la cuenta llega enseguida.
+  if(S.aEleccion <= 0 && !S.eleccionPendiente) S.eleccionPendiente = resolverEleccion();
+
+  // --- bono del país ---
+  if(!S.bonoDefault){
+    let obj = BONO_OBJETIVO[S.regimen] * (S.gobierno === "ajuste" ? 1.10 : .92);
+    // Antes de la elección nadie quiere quedarse con papeles: el precio se hunde.
+    if(S.aEleccion <= 6 && S.aEleccion > 0) obj -= (7 - S.aEleccion) * 3.4;
+    S.bonoPrecio = clamp(S.bonoPrecio + (obj - S.bonoPrecio) * .16 + rnd(-3.5, 3.5), 8, 118);
+
+    if(S.bonoVN > 0){
+      const cupon = S.bonoVN * .011;              // ~14% anual en dólares
+      S.usd += cupon; S.cuponTotal += cupon;
+      if(S.mes % 6 === 0) S.avisos.push("Cobraste " + usd(cupon * 6) + " de cupones del bono.");
+    }
+    /* Default: la quita. Es lo que hace que el cupón alto no sea plata gratis,
+       y solo pasa en crisis — que es exactamente cuando el bono se ve barato. */
+    if(S.regimen === "crisis" && Math.random() < .020){
+      S.bonoDefault = true;
+      const quita = rnd(.55, .78);
+      if(S.bonoVN > 0){
+        S.bonoVN *= (1 - quita);
+        S.bonoPrecio = rnd(18, 30);
+        animo(-12); S.golpes++;
+        aprender("default");
+        S.avisos.push("El país entró en default. Te reestructuran el bono con una quita del "
+          + Math.round(quita*100) + "% y dejan de pagar cupones.");
+      }
+    }
+  } else if(Math.random() < .035){
+    // Se reestructura y vuelve a pagar. Tarde, peor, pero vuelve.
+    S.bonoDefault = false; S.bonoPrecio = rnd(32, 46);
+    S.avisos.push("Cerró el canje de deuda. El bono vuelve a pagar cupones, más chicos.");
+  }
+
+  // --- índice global ---
+  let r;
+  if(S.mesesCrash > 0){ r = rnd(-.115, -.005); S.mesesCrash--; }
+  else if(Math.random() < .013){
+    S.mesesCrash = rndI(2, 5); r = rnd(-.135, -.045);
+    if(S.indiceUn > 0){
+      aprender("volatilidad");
+      S.avisos.push("Se cayeron los mercados del mundo. Tu índice global está en rojo fuerte.");
+    }
+  }
+  else r = .0065 + rnd(-.032, .042);            // sube a la larga, con ruido
+  S.indicePrecio = Math.max(12, S.indicePrecio * (1 + r));
+
+  // --- la escalera: habilitar lo que el colchón ya te permite ---
+  const aL = aireLiquido();
+  for(const e of ESCALERA){
+    if(S.instrumentos[e.id] || aL < e.aire) continue;
+    S.instrumentos[e.id] = S.mes;
+    S.nuevos.push({ tipo:"instrumento", id: e.id });
+  }
+}
+
+/* ==========================================================================
    EL PASO DEL MES
    ========================================================================== */
 function avanzarMes(){
@@ -362,12 +614,15 @@ function avanzarMes(){
   if((MES_INICIAL + S.mes) % 12 === 0) S.edad++;
   S.avisos = []; S.detalle = []; S.inMes = 0; S.egMes = 0;
 
-  // --- régimen: cambia solo, y la crisis nunca es permanente ---
+  /* --- régimen ---
+     Cambia solo, y la crisis nunca es permanente. Pero el cambio grande se lo
+     lleva la elección: ver `resolverEleccion`. Acá solo pasa la deriva lenta. */
   if(--S.mesesRegimen <= 0){
     S.regimen = pick(REGIMENES[S.regimen].sale);
     S.mesesRegimen = rndI(REGIMENES[S.regimen].dura[0], REGIMENES[S.regimen].dura[1]);
   }
   const R = REGIMENES[S.regimen];
+  S.aEleccion--;
 
   // --- inflación ---
   S.inflMes = rnd(R.infl[0], R.infl[1]);
@@ -443,6 +698,8 @@ function avanzarMes(){
     S.cuotas = S.cuotas.filter(x => x.restantes > 0);
   }
 
+  moverMercados(R);
+
   // --- rendimientos y deuda ---
   if(S.plazo > 0){
     const t = tasaPF();
@@ -507,6 +764,7 @@ function avanzarMes(){
   S.simPesos += neto;
   S.simPlazo = S.simPlazo * (1 + tasaPF()) + neto;
   S.simUsd += neto / S.dolar;
+  S.simIndice += neto / S.dolar / S.indicePrecio;   // en unidades del índice
 
   guardar();
 }
@@ -1391,6 +1649,86 @@ const EVENTOS = [
   ]
 },
 {
+  id:"pre-eleccion", repetible:true, peso:1,
+  cond: () => S.aEleccion <= 4 && S.aEleccion > 0 && S.mes > 8,
+  texto: () => `<p>Faltan ${S.aEleccion} ${S.aEleccion === 1 ? "mes" : "meses"} para la elección.
+  Gobierna ${S.gobierno === "ajuste" ? "el sector del ajuste" : "el sector del gasto"} y el país
+  está partido al medio.</p>
+  <p>El bono argentino cotiza a ${Math.round(S.bonoPrecio)} centavos por cada dólar de deuda.
+  Todos tienen un pronóstico y ninguno tiene idea.</p>`,
+  opciones: [
+    { txt:"Comprar bonos ahora que están por el piso",
+      sub:"Si el mercado se entusiasma, volás. Si no, te quedás con papeles.",
+      cond: () => tieneAcceso("bono") && S.pesos > 0,
+      hacer(){ aprender("cicloElec"); aprender("riesgoPais");
+        const vn = comprarBono(Math.max(0,S.pesos) * .6);
+        return `<p>Comprás ${Math.round(vn)} de valor nominal a ${Math.round(S.bonoPrecio)}.</p>
+        <p>Estás cobrando por bancarte una incertidumbre que nadie sabe resolver. Es una apuesta
+        legítima — siempre que sea con plata que no necesitás, y sabiendo que el precio ya
+        descuenta lo que vos creés que sabés.</p>`; } },
+    { txt:"Sacar todo lo argentino y esperar afuera",
+      sub:"Dólares e índice global. Te perdés el rebote si lo hay.",
+      hacer(){ aprender("cicloElec");
+        const p = venderBono(S.bonoVN);
+        const c = comprarUsd(Math.max(0,S.pesos) * .8);
+        return `<p>${p > 0 ? "Vendés los bonos y pasás " : "Pasás "}${usd(c)} a dólares.</p>
+        <p>Dormís tranquilo estos meses. También te vas a perder el rebote si el mercado
+        festeja, y esa sensación tiene un costo emocional que conviene tener presente antes
+        de decidir, no después.</p>`; } },
+    { txt:"Dejar la cartera repartida como está",
+      sub:"No moverse también es una posición.",
+      hacer(){ aprender("cicloElec"); aprender("diversif");
+        return `<p>No tocás nada.</p>
+        <p>Si estás repartido, ninguno de los dos resultados te rompe. No vas a ser el que
+        contó la anécdota en el asado, pero tampoco el que se quedó callado.</p>`; } },
+    { txt:"Adelantar compras grandes antes de la elección",
+      sub:"Por las dudas de que después todo esté más caro.",
+      hacer(){ gastar(S.gastos * .8, "Compras adelantadas"); animo(3);
+        return `<p>Comprás lo que venías postergando.</p>
+        <p>Es lo que hace medio país cada cuatro años, y por eso mismo el mes previo a una
+        elección todo se vende. A veces zafás de un aumento; a veces comprás apurado cosas
+        que no necesitabas.</p>`; } },
+  ]
+},
+{
+  id:"eleccion", repetible:true, peso:1, cond: () => !!S.eleccionPendiente,
+  texto: () => {
+    const e = S.eleccionPendiente;
+    return `<p>Domingo a la noche. ${e.cambia
+      ? "Gana la oposición: a partir de diciembre gobierna " + (e.gobierno === "ajuste" ? "el sector del ajuste" : "el sector del gasto") + "."
+      : "Gana el oficialismo. Sigue " + (e.gobierno === "ajuste" ? "el sector del ajuste" : "el sector del gasto") + "."}</p>
+    <p>El lunes el bono ${e.subioBono ? "salta" : "se derrumba"} de ${Math.round(e.antes)} a
+    ${Math.round(e.ahora)}. ${e.subioBono
+      ? "Los que compraron baratos festejan y explican por qué era obvio."
+      : "Los que compraron baratos se quedan callados y explican que es a largo plazo."}</p>`;
+  },
+  opciones: [
+    { txt:"Tomar ganancia o cortar la pérdida",
+      sub:"Vender los bonos y volver a lo conocido.",
+      cond: () => S.bonoVN > 0,
+      hacer(){ const e = S.eleccionPendiente; S.eleccionPendiente = null;
+        const p = venderBono(S.bonoVN); comprarUsd(p * .9);
+        return `<p>Vendés y pasás ${fmt(p)} a dólares.</p>
+        <p>${e.subioBono
+          ? "Saliste ganando. Anotá esto: el precio no se movió porque vos hayas acertado el resultado, se movió porque el resultado no fue el que estaba descontado. Son dos cosas distintas y confundirlas sale caro la próxima."
+          : "Perdiste plata y aprendiste algo que se paga caro de cualquier forma: antes de una elección, el precio ya tiene adentro lo que todo el mundo cree que va a pasar."}</p>`; } },
+    { txt:"Aguantar y ver qué hace el gobierno nuevo",
+      sub:"Los primeros meses son los que definen todo.",
+      hacer(){ S.eleccionPendiente = null; aprender("horizonte");
+        return `<p>No tocás nada y mirás.</p>
+        <p>Un gobierno se juzga por lo que hace en los primeros seis meses, no por lo que
+        prometió en campaña. Recién ahí vas a saber en qué país estás parado, y para entonces
+        el precio ya se movió otra vez.</p>`; } },
+    { txt:"No entendés nada de esto y seguís con lo tuyo",
+      sub:"Trabajar, cobrar, pagar.",
+      hacer(){ S.eleccionPendiente = null;
+        return `<p>Apagás la tele y te vas a dormir porque mañana laburás.</p>
+        <p>Que no te vendan lo contrario: la mayoría de la gente hace exactamente esto, y a
+        diez años le va parecido que a la que sigue el minuto a minuto. Lo que te cambia la
+        vida es cuánto te sobra por mes, no quién ganó.</p>`; } },
+  ]
+},
+{
   id:"robo", repetible:true, peso:1, cond: () => S.mes > 10,
   texto: () => `<p>Dos en una moto, a media cuadra de tu casa. Te llevan el celular y la
   mochila.</p><p>No te lastimaron. Estás temblando igual.</p>`,
@@ -1536,8 +1874,11 @@ const ESPERA_REPETIBLE = 20;   // meses antes de que un evento de la diaria vuel
 function escenaDisponible(){
   // 0) dos cosas tapan cualquier otra: quedarte sin laburo y el bajón anímico
   const urgentes = [
+    { id:"eleccion",         listo: () => !!S.eleccionPendiente,           espera: 2 },
     { id:"volver-a-laburar", listo: () => !S.trabajo && S.sinTrabajo >= 2, espera: 5 },
     { id:"bajon",            listo: () => S.animo < 22,                    espera: 5 },
+    { id:"pre-eleccion",     listo: () => S.aEleccion <= 4 && S.aEleccion > 0 && S.mes > 8,
+      espera: 40 },
   ];
   for(const u of urgentes){
     if(!u.listo()) continue;
@@ -1606,6 +1947,7 @@ function siguiente(){
     avanzarMes();
     const corte = finalTemprano();
     if(corte){ S.finTemprano = corte; return pantallaFinal(); }
+    if(tocaRevision()){ pendientes.push(resumenMes()); return pantallaCartera(); }
     pendientes.push(resumenMes());
     const esc = escenaDisponible();
     if(esc){ S.usados[esc.id] = S.mes; return pantallaEscena(esc); }
@@ -1646,6 +1988,8 @@ function pintarHud(){
         <span class="chip"><span class="lbl">Pesos</span><b>${fmtK(S.pesos)}</b></span>
         ${S.usd > 0 ? `<span class="chip oro"><span class="lbl">Dólares</span><b>${usd(S.usd)}</b></span>` : ""}
         ${S.plazo > 0 ? `<span class="chip"><span class="lbl">Plazo fijo</span><b>${fmtK(S.plazo)}</b></span>` : ""}
+        ${S.bonoVN > 0 ? `<span class="chip ${S.bonoDefault ? "mala" : ""}"><span class="lbl">Bono ${Math.round(S.bonoPrecio)}</span><b>${fmtK(valorBono())}</b></span>` : ""}
+        ${S.indiceUn > 0 ? `<span class="chip"><span class="lbl">Índice</span><b>${fmtK(valorIndice())}</b></span>` : ""}
         ${S.deuda > 0 ? `<span class="chip mala"><span class="lbl">Deuda</span><b>${fmtK(S.deuda)}</b></span>` : ""}
         ${S.cuotas.length ? `<span class="chip"><span class="lbl">Cuotas</span><b>${S.cuotas.length}</b></span>` : ""}
         <span class="chip ${claseAire}"><span class="lbl">Aire</span><b>${aireTexto(a)} m</b></span>
@@ -1688,6 +2032,104 @@ function bloqueResumenes(){
       </div>` : ""}
       ${avisos.map(a => `<div class="aviso">${a}</div>`).join("")}
     </div>`;
+}
+
+/* ==========================================================================
+   REVISIÓN ANUAL
+   Una vez por año de juego. Es el único momento donde ves toda tu plata junta y
+   podés decidir cómo repartirla. Diez momentos en toda la partida — a propósito:
+   si pudieras tocar la cartera todos los meses, esto sería un simulador de
+   trading, que es exactamente lo que no queremos enseñar.
+   ========================================================================== */
+let objetivoCartera = null;
+
+function tocaRevision(){
+  if(S.mes < 12 || S.mes % 12 !== 0) return false;
+  if(S.ultimaRevision === S.mes) return false;
+  if(rubrosAbiertos().length < 2) return false;
+  return totalCartera() > egresoFijo() * .5;
+}
+
+function pantallaCartera(){
+  pintarHud();
+  const abiertos = rubrosAbiertos();
+  const total = totalCartera(), v = valores();
+  if(!objetivoCartera){
+    objetivoCartera = {};
+    // Arranca mostrando cómo estás parado hoy, no una propuesta nuestra.
+    abiertos.forEach(r => objetivoCartera[r.id] = total > 0 ? Math.round(v[r.id] / total * 100) : 0);
+    const dif = 100 - Object.values(objetivoCartera).reduce((a,b) => a + b, 0);
+    objetivoCartera[abiertos[0].id] += dif;
+  }
+  const suma = Object.values(objetivoCartera).reduce((a,b) => a + b, 0);
+
+  $app.innerHTML = `<div class="fade">
+    <div class="eyebrow">Cierre del año ${Math.floor(S.mes/12)} · ${fechaAnio()}</div>
+    <h2>Toda tu plata, junta</h2>
+    <p class="texto" style="font-size:15px; color:var(--muted); margin:0 0 18px">
+      Tenés ${fmt(total)}. Una vez por año podés reacomodar cómo está repartida.
+      Mover plata paga comisión, así que rebalancear por rebalancear cuesta.</p>
+
+    <div class="card">
+      ${abiertos.map(r => {
+        const pctActual = total > 0 ? v[r.id] / total * 100 : 0;
+        const obj = objetivoCartera[r.id] || 0;
+        return `<div class="rubro">
+          <div class="rubro-cab">
+            <span class="rubro-n">${r.n}</span>
+            <span class="rubro-v">${fmtK(v[r.id])} <span class="rubro-hoy">hoy ${Math.round(pctActual)}%</span></span>
+          </div>
+          <div class="rubro-ctrl">
+            <button class="paso" data-r="${r.id}" data-d="-5" ${obj <= 0 ? "disabled" : ""}>−</button>
+            <div class="rubro-barra"><i style="width:${obj}%"></i></div>
+            <span class="rubro-pct">${obj}%</span>
+            <button class="paso" data-r="${r.id}" data-d="5" ${suma >= 100 ? "disabled" : ""}>+</button>
+          </div>
+        </div>`;
+      }).join("")}
+      <div class="rubro-total ${suma === 100 ? "ok" : "mal"}">
+        ${suma === 100
+          ? "Repartido: 100% · bajá algo para poder subir otra cosa"
+          : "Te falta repartir " + (100 - suma) + "%"}
+      </div>
+    </div>
+
+    <div class="ops">
+      <button class="btn" id="aplicar" ${suma !== 100 ? "disabled" : ""}>Aplicar y seguir</button>
+      <button class="btn ghost" id="saltar">Dejar todo como está</button>
+    </div>
+    <p class="nota">La plata en pesos y en plazo fijo es la que podés usar mañana. El bono y el
+      índice pueden valer mucho y no servirte el martes que se rompe algo.</p>
+  </div>`;
+
+  $app.querySelectorAll(".paso").forEach(b => {
+    b.onclick = () => {
+      const r = b.dataset.r, d = +b.dataset.d;
+      const s = Object.values(objetivoCartera).reduce((a,x) => a + x, 0);
+      objetivoCartera[r] = clamp((objetivoCartera[r] || 0) + d, 0,
+                                 (objetivoCartera[r] || 0) + (100 - s));
+      pantallaCartera();
+    };
+  });
+  document.getElementById("saltar").onclick = () => {
+    S.ultimaRevision = S.mes; objetivoCartera = null; aprender("horizonte"); siguiente();
+  };
+  const ap = document.getElementById("aplicar");
+  if(ap) ap.onclick = () => {
+    const movido = rebalancear(objetivoCartera);
+    const usados = Object.values(objetivoCartera).filter(x => x >= 10).length;
+    if(usados >= 3) aprender("diversif");
+    if(Object.values(objetivoCartera).some(x => x >= 80)) aprender("concentr");
+    S.ultimaRevision = S.mes; objetivoCartera = null;
+    guardar();
+    pantallaConsecuencia("Reacomodaste la cartera",
+      movido > 0
+        ? `<p>Moviste ${fmt(movido)} entre una cosa y otra.</p>
+           <p>Las comisiones ya se descontaron. No se sienten de a una; a diez años de
+           rebalanceos, sí.</p>`
+        : `<p>Hiciste los números y quedó casi igual a como estaba.</p>
+           <p>Que es, la mayoría de las veces, la respuesta correcta.</p>`);
+  };
 }
 
 function pantallaInterludio(){
@@ -1740,6 +2182,15 @@ function bloqueDesbloqueos(){
         <div class="cab">Aprendiste</div><div class="ttl">${c.n}</div>
         <div class="cpo">${c.t}</div></div></div>`;
     }
+    if(d.tipo === "instrumento"){
+      const e = ESCALERA.find(x => x.id === d.id);
+      return `<div class="desbloqueo nuevo-instr"><span class="ico">▲</span><div>
+        <div class="cab">Se te abrió una puerta</div><div class="ttl">${e.n}</div>
+        <div class="cpo">${e.d}</div>
+        <div class="cpo" style="color:var(--dim); margin-top:7px">Se habilitó porque juntaste
+        ${e.aire === .5 ? "medio mes" : e.aire + " meses"} de gastos en plata disponible.</div>
+      </div></div>`;
+    }
     const l = LOGROS[d.id];
     return `<div class="desbloqueo"><span class="ico">★</span><div>
       <div class="cab">Logro</div><div class="ttl">${l.n}</div>
@@ -1775,7 +2226,8 @@ function pantallaFinal(){
   const simPesosUsd = S.simPesos / S.dolar;
   const simPlazoUsd = S.simPlazo / S.dolar;
   const simUsdUsd   = S.simUsd;
-  const maxSim = Math.max(patrUsd, simPesosUsd, simPlazoUsd, simUsdUsd, 1);
+  const simIndiceUsd = S.simIndice * S.indicePrecio;
+  const maxSim = Math.max(patrUsd, simPesosUsd, simPlazoUsd, simUsdUsd, simIndiceUsd, 1);
 
   // --- logros que solo se pueden juzgar al final ---
   if(S.mesesEnRojo === 0) lograr("sinDeuda");
@@ -1866,9 +2318,13 @@ function pantallaFinal(){
         <span class="val">${usd(simPlazoUsd)}</span></div>
       <div class="comp"><span class="nom">Todo a dólares</span>${barra(simUsdUsd)}
         <span class="val">${usd(simUsdUsd)}</span></div>
+      <div class="comp"><span class="nom">Todo al índice global</span>${barra(simIndiceUsd)}
+        <span class="val">${usd(simIndiceUsd)}</span></div>
     </div>
     <p class="nota">Te tocó un país con estos regímenes: la inflación acumulada de la década fue
-      ${pct(S.ipc - 1)} y el dólar pasó de $1.350 a ${fmt(S.dolar)}. En otra partida te toca otro
+      ${pct(S.ipc - 1)}, el dólar pasó de $1.350 a ${fmt(S.dolar)}, hubo ${S.elecciones}
+      ${S.elecciones === 1 ? "elección" : "elecciones"} y el índice global multiplicó por
+      ${(S.indicePrecio/100).toFixed(2).replace(".",",")}. En otra partida te toca otro
       país. Esa es la idea: si hubiera una jugada que gana siempre, no habría nada que aprender.</p>
 
     <hr class="sep">
