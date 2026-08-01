@@ -127,7 +127,7 @@ rebalancear por rebalancear cuesta — y eso también es parte de la lección.
 
 ## Conceptos y logros
 
-No hay tutorial ni glosario para leer al principio. Cada uno de los **23 conceptos** se
+No hay tutorial ni glosario para leer al principio. Cada uno de los **22 conceptos** se
 desbloquea el mes exacto en que te pasa, y recién ahí se te nombra lo que acabás de vivir:
 la licuación aparece cuando cerrás una paritaria por debajo de la inflación, la tasa real
 el mes que tu plazo fijo rinde menos que los precios, el riesgo de contraparte cuando le
@@ -138,6 +138,23 @@ Ahí está el motivo para jugar de nuevo.
 
 Los **10 logros** están puestos en lo difícil de sostener diez años: no deber nunca, pasar
 una crisis sin endeudarte, no vender los dólares en el pico, terminar con el ánimo alto.
+
+## La colección
+
+Los conceptos y logros **no se reinician** al empezar otra vida: se acumulan en el
+navegador. Al final de cada partida ves cuántos llevás de todos, cuáles fueron novedad
+esta vez, y cuál fue tu mejor aire histórico.
+
+Ahí está la razón concreta para volver a jugar. Una partida típica desbloquea entre 14 y
+18 de los 22 conceptos; llegar a los 22 lleva tres o cuatro vidas, porque los que faltan
+solo aparecen si tomás decisiones que todavía no tomaste.
+
+## El gráfico
+
+La pantalla final abre con tu patrimonio mes a mes **en pesos constantes**, descontada la
+inflación. Es deliberado: en pesos corrientes cualquier curva sube y el gráfico mentiría.
+Ésta muestra si de verdad avanzaste. Se puede recorrer con el dedo para ver qué tenías en
+cualquier mes de la década.
 
 ## Formas de perder
 
@@ -156,9 +173,11 @@ Sobre 700 partidas jugadas al azar, el 71% llega a los diez años, 19% termina e
 Prototipo, 42 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
 jugar otra partida?** Si la respuesta es no, nada del resto importa.
 
-Falta: las escenas de pareja e hijos son más flacas que las de plata, no hay sonido, y la
-revisión anual todavía no te muestra qué hizo cada instrumento en los últimos doce meses
-—que es justo el dato que necesitás para decidir bien.
+Falta: la revisión anual todavía no te muestra qué hizo cada instrumento en los últimos
+doce meses —que es justo el dato que necesitás para decidir bien—, las escenas de pareja e
+hijos son más flacas que las de plata, todos los personajes son anónimos ("un amigo", "un
+conocido") cuando tener nombre y volver tres veces en la década los haría memorables, y no
+hay sonido.
 
 ---
 
