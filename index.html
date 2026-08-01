@@ -306,10 +306,10 @@ function nuevaPartida(origen){
     golpes: 0, suertes: 0,            // cuántas veces te pegó y te sonrió el azar
     serie: [],                        // patrimonio real mes a mes, para el gráfico
     /* La gente que vuelve. Cada uno tiene un arco propio que avanza con los años
-       y no depende de cómo te fue a vos: Nacho dobla la apuesta lo hayas
+       y no depende de cómo te fue a vos: Pedro dobla la apuesta lo hayas
        acompañado o no. Ver PERSONAJES. */
-    gente: { nacho:{ etapa:"", visto:-99 }, vale:{ etapa:"", visto:-99 },
-             fede:{ etapa:"", visto:-99 } },
+    gente: { pedro:{ etapa:"", visto:-99 }, vale:{ etapa:"", visto:-99 },
+             bautista:{ etapa:"", visto:-99 } },
   };
   return S;
 }
@@ -377,16 +377,16 @@ function lograr(id){
    Antes cada escena traía "un amigo" distinto y las repeticiones se sentían
    repeticiones. Ahora vuelven cuatro personas con nombre y arco propio:
 
-     Nacho  el que siempre tiene el dato. Eufórico, después deja el laburo para
-            operar, después se funde. Su historia avanza sola, la acompañes o no
-            — la lección es que el que te muestra la pantalla en verde nunca te
-            muestra la de seis meses después.
-     Vale   compañera de trabajo que sabe de plata. Te explica, después se va a
-            otra empresa por más guita, después te ofrece entrar donde está.
-     Fede   el que arranca cosas. Te pide prestado, después te ofrece entrar en
-            su negocio, después el negocio se define.
-     Susana tu vieja. Aparece en el primer sueldo, cuando no le cierra el mes y
-            cuando internan a tu viejo.
+     Pedro     el que siempre tiene el dato. Eufórico, después deja el laburo
+               para operar, después se funde. Su historia avanza sola, la
+               acompañes o no — la lección es que el que te muestra la pantalla
+               en verde nunca te muestra la de seis meses después.
+     Vale      compañera de trabajo que sabe de plata. Te explica, después se va
+               a otra empresa por más guita, después te ofrece entrar donde está.
+     Bautista  el que arranca cosas. Te pide prestado, después te ofrece entrar
+               en su negocio, después el negocio se define.
+     Susana    tu vieja. Aparece en el primer sueldo, cuando no le cierra el mes
+               y cuando internan a tu viejo.
 
    `etapa` es dónde está su historia; `visto`, el mes de la última aparición.
    Las continuaciones esperan al menos año y medio para que se sientan años. */
@@ -1097,7 +1097,7 @@ const HITOS = [
 },
 {
   id:"oportunidad", mes:76,
-  texto: () => `<p>Fede te ofrece entrar en algo suyo. Necesita ${fmt(S.sueldo*4)} y te da una
+  texto: () => `<p>Bautista te ofrece entrar en algo suyo. Necesita ${fmt(S.sueldo*4)} y te da una
   parte.</p>
   <p>Te muestra números en una servilleta. Los números cierran, como cierran siempre los
   números en una servilleta.</p>`,
@@ -1107,17 +1107,17 @@ const HITOS = [
       hacer(){ aprender("suerteHab"); const m = Math.min(S.sueldo*4, Math.max(0,S.pesos)); gastar(m,"Inversión en el negocio");
         const suerte = Math.random();
         if(suerte < .28){ cobrar(m*rnd(2.2,4.5),"Le fue bien al negocio"); animo(12);
-          recordar("Puso plata en el negocio de Fede y le fue bien");
+          recordar("Puso plata en el negocio de Bautista y le fue bien");
           return `<p>Contra todo pronóstico, funciona.</p><p>Te llevás bastante más de lo que pusiste.
           Ojo con la lectura: salió bien, pero eso no quiere decir que la decisión fuera buena.
           Con esos números, la mayoría de las veces perdés.</p>`; }
         if(suerte < .62){ cobrar(m*rnd(.3,.8),"Recuperaste parte"); animo(-8);
-          recordar("Puso plata con Fede y recuperó una parte");
+          recordar("Puso plata con Bautista y recuperó una parte");
           return `<p>El negocio arranca, cojea, y a los ocho meses cierra sin drama.</p>
-          <p>Recuperás una parte y Fede te sigue saludando, que es más de lo que pasa en la
+          <p>Recuperás una parte y Bautista te sigue saludando, que es más de lo que pasa en la
           mayoría de estas historias.</p>`; }
-        animo(-14); recordar("Perdió plata en el negocio de Fede");
-        return `<p>Fede deja de contestar los mensajes en marzo.</p>
+        animo(-14); recordar("Perdió plata en el negocio de Bautista");
+        return `<p>Bautista deja de contestar los mensajes en marzo.</p>
         <p>Perdiste la plata y al amigo. Lo que dolió no fue el monto: fue que era plata que
         te había costado años juntar.</p>`; } },
     { txt:"Entrar con poco, lo que te bancás perder",
@@ -1125,13 +1125,13 @@ const HITOS = [
       hacer(){ aprender("tamApuesta"); const m = Math.min(S.sueldo, Math.max(0,S.pesos)); gastar(m,"Inversión chica");
         if(Math.random() < .3){ cobrar(m*rnd(2,4),"Rindió la apuesta chica"); animo(6); }
         else animo(-2);
-        recordar("Entró con poco en el negocio de Fede");
+        recordar("Entró con poco en el negocio de Bautista");
         return `<p>Ponés lo que te bancás perder y te olvidás.</p>
         <p>Esta es la forma adulta de apostar: el tamaño de la apuesta importa más que la apuesta.
         Si sale, buenísimo. Si no sale, tu vida no cambia.</p>`; } },
     { txt:"No entrar",
       sub:"No entendés el negocio.",
-      hacer(){ recordar("No entró en el negocio de Fede");
+      hacer(){ recordar("No entró en el negocio de Bautista");
         return `<p>Le decís que no. Se nota que le molesta un poco.</p>
         <p>No meterse en lo que uno no entiende es una regla aburrida que le ahorró a mucha gente
         una cantidad enorme de plata y de amigos.</p>`; } },
@@ -1267,15 +1267,15 @@ const EVENTOS = [
   ]
 },
 {
-  id:"nacho-1", peso:2, cond: () => S.mes > 9 && S.gente.nacho.etapa === "",
-  texto: () => `<p>Asado en lo de Nacho. Lo conocés del secundario y siempre tuvo un dato: las
+  id:"pedro-1", peso:2, cond: () => S.mes > 9 && S.gente.pedro.etapa === "",
+  texto: () => `<p>Asado en lo de Pedro. Lo conocés del secundario y siempre tuvo un dato: las
   zapatillas que iban a subir, el celular que convenía traer de afuera.</p>
   <p>Esta vez saca el teléfono en la mesa y muestra la pantalla en verde. Cuarenta por ciento
   en dos meses. Todos se acercan a mirar.</p>
   <p>—Todavía estás a tiempo —te dice.</p>`,
   opciones: [
     { txt:"Poner una parte grande",
-      hacer(){ aprender("suerteHab"); avanzaArco("nacho","euforico");
+      hacer(){ aprender("suerteHab"); avanzaArco("pedro","euforico");
         const m = Math.max(0,S.pesos)*.4; gastar(m,"Cripto");
         const r = Math.random();
         if(r < .3){ cobrar(m*rnd(1.8,3.2),"Cripto: salió"); animo(9);
@@ -1287,47 +1287,47 @@ const EVENTOS = [
           <p>Miraste el precio todos los días para nada.</p>`; }
         cobrar(m*rnd(.15,.55),"Cripto: perdiste"); animo(-10);
         return `<p>Baja un 40% en una semana y no vuelve.</p>
-        <p>Nacho deja de mostrar la pantalla en los asados. Nadie cuenta la parte en que pierde,
+        <p>Pedro deja de mostrar la pantalla en los asados. Nadie cuenta la parte en que pierde,
         y por eso desde afuera parece que todos ganan.</p>`; } },
     { txt:"Poner algo chico, por curiosidad",
-      hacer(){ aprender("tamApuesta"); avanzaArco("nacho","euforico");
+      hacer(){ aprender("tamApuesta"); avanzaArco("pedro","euforico");
         const m = Math.min(S.sueldo*.25, Math.max(0,S.pesos)); gastar(m,"Cripto (poco)");
         cobrar(m*rnd(.3,2.4),"Resultado cripto");
         return `<p>Ponés lo que te bancás perder y mirás qué pasa.</p>
         <p>Entendés cómo funciona sin arriesgar nada que te importe. Es la forma más barata que
         existe de aprender algo.</p>`; } },
     { txt:"Nada. Te tomás otra cerveza",
-      hacer(){ avanzaArco("nacho","euforico");
+      hacer(){ avanzaArco("pedro","euforico");
         return `<p>Asentís con la cabeza y agarrás otro chorizo.</p>
-        <p>Te vas a perder la próxima que Nacho la pegue. También las tres que no, y de esas no
+        <p>Te vas a perder la próxima que Pedro la pegue. También las tres que no, y de esas no
         se entera nadie.</p>`; } },
   ]
 },
 {
-  /* El arco avanza solo: Nacho dobla la apuesta lo hayas acompañado o no. La
-     lección no es "no le hagas caso a Nacho" sino que la historia que te cuentan
+  /* El arco avanza solo: Pedro dobla la apuesta lo hayas acompañado o no. La
+     lección no es "no le hagas caso a Pedro" sino que la historia que te cuentan
      siempre tiene seis meses menos que la historia completa. */
-  id:"nacho-2", peso:2, cond: () => enArco("nacho","euforico"),
-  texto: () => `<p>Nacho renunció. Dice que no tiene sentido laburar ocho horas para ganar lo
+  id:"pedro-2", peso:2, cond: () => enArco("pedro","euforico"),
+  texto: () => `<p>Pedro renunció. Dice que no tiene sentido laburar ocho horas para ganar lo
   que él hace en una tarde buena.</p>
   <p>Ahora opera plata de conocidos y te ofrece entrar. —Cobro el 20% de la ganancia —aclara—.
   Si no ganás, no cobro.</p>`,
   opciones: [
-    { txt:"Ponerle plata a Nacho",
+    { txt:"Ponerle plata a Pedro",
       sub:"Le viene yendo bien hasta ahora.",
-      hacer(){ aprender("riesgoContr"); avanzaArco("nacho","fondo");
-        const m = Math.max(0,S.pesos)*.35; gastar(m,"A la mesa de Nacho");
-        S.gente.nacho.puesto = m;
+      hacer(){ aprender("riesgoContr"); avanzaArco("pedro","fondo");
+        const m = Math.max(0,S.pesos)*.35; gastar(m,"A la mesa de Pedro");
+        S.gente.pedro.puesto = m;
         return `<p>Le transferís y te suma a un grupo donde postea capturas todos los días.</p>
         <p>Mirá cómo está armado el trato: si gana, cobra; si pierde, perdés vos solo. El que no
         arriesga nada propio no tiene ningún motivo para tener cuidado con lo tuyo.</p>`; } },
     { txt:"Decirle que no, con cariño",
-      hacer(){ avanzaArco("nacho","fondo");
+      hacer(){ avanzaArco("pedro","fondo");
         return `<p>Le decís que estás con otras cosas. Se ríe y te dice tortuga.</p>
         <p>Puede ser. Las tortugas llegan a los diez años.</p>`; } },
     { txt:"Preguntarle de qué vive mientras tanto",
       sub:"La pregunta incómoda.",
-      hacer(){ aprender("horizonte"); avanzaArco("nacho","fondo"); animo(-2);
+      hacer(){ aprender("horizonte"); avanzaArco("pedro","fondo"); animo(-2);
         return `<p>Se pone raro. Dice que está "reinvirtiendo" y cambia de tema.</p>
         <p>Es la pregunta que casi nadie hace y la única que importa: si vive de las ganancias no
         las está reinvirtiendo, y si las reinvierte no vive de eso. Las dos cosas juntas no
@@ -1335,13 +1335,13 @@ const EVENTOS = [
   ]
 },
 {
-  id:"nacho-3", peso:3, cond: () => enArco("nacho","fondo"),
+  id:"pedro-3", peso:3, cond: () => enArco("pedro","fondo"),
   texto: () => {
-    if(S.gente.nacho.laPego === undefined) S.gente.nacho.laPego = Math.random() < .18;
-    return S.gente.nacho.laPego
-      ? `<p>Nacho se compró un departamento en Palermo. Lo postea con la llave en la mano.</p>
+    if(S.gente.pedro.laPego === undefined) S.gente.pedro.laPego = Math.random() < .18;
+    return S.gente.pedro.laPego
+      ? `<p>Pedro se compró un departamento en Palermo. Lo postea con la llave en la mano.</p>
          <p>Te escribe: —Te dije, gil.</p>`
-      : `<p>Hace cuatro meses que Nacho no postea. Te enterás por otro: quedó apalancado en la
+      : `<p>Hace cuatro meses que Pedro no postea. Te enterás por otro: quedó apalancado en la
          caída de septiembre y perdió todo, lo suyo y lo de la gente que le había confiado
          plata.</p>
          <p>Te escribe a las dos de la mañana. Pide disculpas y pregunta si lo podés ayudar
@@ -1349,55 +1349,55 @@ const EVENTOS = [
   },
   opciones: [
     { txt:"Ayudarlo con lo que puedas",
-      cond: () => !S.gente.nacho.laPego,
-      hacer(){ avanzaArco("nacho","despues"); gastar(S.sueldo*.5,"Ayuda a Nacho"); animo(4);
-        const p = S.gente.nacho.puesto || 0;
+      cond: () => !S.gente.pedro.laPego,
+      hacer(){ avanzaArco("pedro","despues"); gastar(S.sueldo*.5,"Ayuda a Pedro"); animo(4);
+        const p = S.gente.pedro.puesto || 0;
         return `<p>Le mandás algo y lo llamás por teléfono, que es lo que en realidad
         necesitaba.</p>
         <p>${p > 0 ? "De lo que le habías puesto no vuelve nada, y nunca lo hablan."
                    : "Vos no le habías puesto un peso y te quedó una cosa rara en el cuerpo igual."}
         Lo que no lo deja dormir no es su plata: es la de los otros.</p>`; } },
     { txt:"Escucharlo, pero no poner plata",
-      cond: () => !S.gente.nacho.laPego,
-      hacer(){ avanzaArco("nacho","despues"); animo(-3);
+      cond: () => !S.gente.pedro.laPego,
+      hacer(){ avanzaArco("pedro","despues"); animo(-3);
         return `<p>Hablan hasta las tres de la mañana. No le mandás nada.</p>
         <p>Es defendible: meter plata en un pozo no saca a nadie del pozo. Igual te vas a quedar
         un tiempo pensando si estuvo bien.</p>`; } },
     { txt:"Felicitarlo y seguir con lo tuyo",
-      cond: () => !!S.gente.nacho.laPego,
-      hacer(){ aprender("suerteHab"); avanzaArco("nacho","despues");
-        const p = S.gente.nacho.puesto || 0;
-        if(p > 0) cobrar(p * rnd(2.4,4.2), "Te devolvió Nacho, con ganancia");
+      cond: () => !!S.gente.pedro.laPego,
+      hacer(){ aprender("suerteHab"); avanzaArco("pedro","despues");
+        const p = S.gente.pedro.puesto || 0;
+        if(p > 0) cobrar(p * rnd(2.4,4.2), "Te devolvió Pedro, con ganancia");
         return `<p>Le contestás con un abrazo y cerrás la aplicación.</p>
-        <p>${p > 0 ? "Te devuelve tu parte multiplicada, y es plata de verdad. " : ""}Nacho fue
+        <p>${p > 0 ? "Te devuelve tu parte multiplicada, y es plata de verdad. " : ""}Pedro fue
         uno de cada cinco. De los otros cuatro no vas a ver ningún posteo — por eso desde afuera
         parece que esto sale bien casi siempre.</p>`; } },
   ]
 },
 {
-  id:"nacho-4", peso:4, cond: () => enArco("nacho","despues") && S.mes > 70,
-  texto: () => S.gente.nacho.laPego
-    ? `<p>Te cruzás a Nacho en un cumpleaños. Vendió el departamento el año pasado para tapar
+  id:"pedro-4", peso:4, cond: () => enArco("pedro","despues") && S.mes > 70,
+  texto: () => S.gente.pedro.laPego
+    ? `<p>Te cruzás a Pedro en un cumpleaños. Vendió el departamento el año pasado para tapar
        una posición que se le dio vuelta.</p>
        <p>Está buscando laburo. Te pregunta, medio en broma, si donde vos trabajás no necesitan
        gente.</p>`
-    : `<p>Te cruzás a Nacho en un cumpleaños. Está trabajando en una empresa de logística, de
+    : `<p>Te cruzás a Pedro en un cumpleaños. Está trabajando en una empresa de logística, de
        nueve a seis.</p>
        <p>—Es un embole —te dice—, pero cobro los días 5 y duermo.</p>`,
   opciones: [
     { txt:"Darle una mano para conseguir algo",
-      hacer(){ avanzaArco("nacho","cerrado"); animo(6); lograr("buenPibe");
+      hacer(){ avanzaArco("pedro","cerrado"); animo(6); lograr("buenPibe");
         return `<p>Lo recomendás donde podés y le repasás el currículum un domingo a la tarde.</p>
         <p>Le sale algo tres meses después. Te lo va a agradecer cada vez que se crucen durante
         los próximos veinte años.</p>`; } },
     { txt:"Preguntarle qué aprendió",
-      hacer(){ aprender("suerteHab"); avanzaArco("nacho","cerrado");
+      hacer(){ aprender("suerteHab"); avanzaArco("pedro","cerrado");
         return `<p>Se queda pensando un rato largo.</p>
         <p>—Que cuando ganaba pensaba que era por listo —dice—. Y cuando perdí pensé que era
         mala suerte. No pueden ser las dos cosas.</p>
         <p>Es lo más inteligente que le escuchaste decir en quince años.</p>`; } },
     { txt:"Saludarlo y no meterte",
-      hacer(){ avanzaArco("nacho","cerrado");
+      hacer(){ avanzaArco("pedro","cerrado");
         return `<p>Charlan de fútbol veinte minutos y cada uno sigue con su noche.</p>
         <p>Una década da para que a alguien le pase todo eso y para que vos no puedas hacer nada
         más que estar.</p>`; } },
@@ -1435,37 +1435,37 @@ const EVENTOS = [
   ]
 },
 {
-  id:"prestamo-amigo", peso:1, cond: () => S.mes > 12 && S.gente.fede.etapa === "",
-  texto: () => `<p>Te escribe Fede. Está complicado, necesita ${fmt(S.sueldo*.6)} y te promete
+  id:"prestamo-amigo", peso:1, cond: () => S.mes > 12 && S.gente.bautista.etapa === "",
+  texto: () => `<p>Te escribe Bautista. Está complicado, necesita ${fmt(S.sueldo*.6)} y te promete
   devolverlo el mes que viene.</p><p>En quince años nunca te pidió nada.</p>`,
   opciones: [
     { txt:"Prestarle",
-      hacer(){ aprender("riesgoContr"); avanzaArco("fede","debe"); gastar(S.sueldo*.6,"Préstamo a Fede");
+      hacer(){ aprender("riesgoContr"); avanzaArco("bautista","debe"); gastar(S.sueldo*.6,"Préstamo a Bautista");
         if(Math.random() < .5){ cobrar(S.sueldo*.6,"Te devolvió"); animo(5);
           return `<p>Te devuelve. Tarde, pero te devuelve.</p><p>Y te lo agradece de una forma
           que te da un poco de vergüenza.</p>`; }
         animo(-5); return `<p>Pasan los meses. No vuelve a aparecer el tema y vos no lo sacás.</p>
         <p>Prestá siempre pensando que capaz no vuelve. Si con eso estás bien, prestá.</p>`; } },
     { txt:"Darle menos, y de regalo",
-      hacer(){ avanzaArco("fede","debe"); gastar(S.sueldo*.25,"Ayuda a Fede"); animo(3);
+      hacer(){ avanzaArco("bautista","debe"); gastar(S.sueldo*.25,"Ayuda a Bautista"); animo(3);
         return `<p>Le mandás menos y le decís que no te lo devuelva.</p>
         <p>Es más barato que prestar y no rompe la amistad. Casi siempre es la mejor versión
         de este favor.</p>`; } },
     { txt:"Decirle que no podés",
-      hacer(){ avanzaArco("fede","debe"); animo(-4); return `<p>Le explicás. Te dice "no pasa nada, tranqui".</p>
+      hacer(){ avanzaArco("bautista","debe"); animo(-4); return `<p>Le explicás. Te dice "no pasa nada, tranqui".</p>
       <p>Queda algo raro un tiempo. Se pasa.</p>`; } },
   ]
 },
 {
-  id:"fede-2", peso:2, cond: () => enArco("fede","debe"),
-  texto: () => `<p>Fede aparece un sábado con una caja de facturas y cara de circunstancia.</p>
+  id:"bautista-2", peso:2, cond: () => enArco("bautista","debe"),
+  texto: () => `<p>Bautista aparece un sábado con una caja de facturas y cara de circunstancia.</p>
   <p>Está arrancando algo: reparte viandas a oficinas y le está yendo mejor de lo que esperaba.
   Viene a contártelo y a otra cosa.</p>`,
   opciones: [
     { txt:"Escuchar qué necesita",
-      hacer(){ avanzaArco("fede","arranca");
+      hacer(){ avanzaArco("bautista","arranca");
         if(Math.random() < .55){
-          cobrar(S.sueldo*.6, "Fede te devolvió"); animo(6);
+          cobrar(S.sueldo*.6, "Bautista te devolvió"); animo(6);
           return `<p>Saca un sobre y te devuelve todo, con seis meses de atraso.</p>
           <p>—Perdón la demora —dice—. No te quería escribir hasta poder pagarte.</p>
           <p>Es la razón por la que muchos desaparecen cuando deben: no es que no quieran pagar,
@@ -1476,9 +1476,9 @@ const EVENTOS = [
         no querer tener una conversación de dos minutos.</p>`; } },
     { txt:"Preguntarle directamente por la plata",
       sub:"La conversación incómoda de dos minutos.",
-      hacer(){ avanzaArco("fede","arranca"); aprender("riesgoContr");
+      hacer(){ avanzaArco("bautista","arranca"); aprender("riesgoContr");
         if(Math.random() < .75){
-          cobrar(S.sueldo*.45, "Fede te devolvió una parte");
+          cobrar(S.sueldo*.45, "Bautista te devolvió una parte");
           return `<p>Se pone colorado y arreglan en cuotas. Te paga la mayor parte en tres
           meses.</p>
           <p>Preguntar no rompió nada. Casi nunca rompe nada: lo que rompe las amistades es el
