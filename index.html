@@ -149,6 +149,9 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
 .rubro-n{font-size:14.5px}
 .rubro-v{font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
 .rubro-hoy{color:var(--dim); font-size:11.5px}
+.rubro-ren{display:inline-block; margin-left:7px; font-size:11.5px;
+  font-variant-numeric:tabular-nums; white-space:nowrap}
+.rubro-ren.pos{color:var(--verde)} .rubro-ren.neg{color:var(--rojo)}
 .rubro-ctrl{display:flex; align-items:center; gap:10px}
 .paso{width:34px; height:34px; flex:0 0 auto; border-radius:9px; border:1px solid var(--line);
   background:var(--card2); color:var(--text); font-size:17px; font-family:inherit; cursor:pointer;
@@ -294,7 +297,7 @@ function nuevaPartida(origen){
     // acumuladores del mes en curso
     inMes: 0, egMes: 0, avisos: [], detalle: [],
     // carteras sombra: mismo flujo de caja, tres estrategias distintas
-    simPesos: 0, simPlazo: 0, simUsd: 0, simIndice: 0,
+    simPesos: 0, simPlazo: 0, simUsd: 0, simIndice: 0, simBono: 0,
     // métricas
     animoSuma: 0, animoN: 0, mesesEnRojo: 0, picoDeuda: 0, aporteTotal: 0,
     historia: [],                     // decisiones tomadas, para el epílogo
@@ -305,6 +308,11 @@ function nuevaPartida(origen){
     ultimaRevision: -1,               // último cierre de año ya revisado
     golpes: 0, suertes: 0,            // cuántas veces te pegó y te sonrió el azar
     serie: [],                        // patrimonio real mes a mes, para el gráfico
+    /* Índices de referencia base 1: qué le habría pasado a un peso puesto en cada
+       instrumento desde el arranque. Existen aunque no tengas nada ahí — así la
+       revisión anual puede mostrarte qué rindió cada cosa igual. */
+    idxPlazo: 1, idxBono: 1,
+    snap: null,                       // foto del año pasado, para calcular el rendimiento
     /* La gente que vuelve. Cada uno tiene un arco propio que avanza con los años
        y no depende de cómo te fue a vos: Pedro dobla la apuesta lo hayas
        acompañado o no. Ver PERSONAJES. */
@@ -394,6 +402,25 @@ const ESPERA_ARCO = 18;
 const avanzaArco = (id, etapa) => { S.gente[id].etapa = etapa; S.gente[id].visto = S.mes; };
 const enArco = (id, etapa) => S.gente[id].etapa === etapa
                            && S.mes - S.gente[id].visto >= ESPERA_ARCO;
+
+/* Foto de los mercados para poder comparar dentro de doce meses. */
+const fotoMercados = () => ({ ipc: S.ipc, dolar: S.dolar,
+  idxPlazo: S.idxPlazo, idxBono: S.idxBono, indice: S.indicePrecio });
+
+/* Rendimiento real del último año por instrumento: cuánto se movió cada cosa
+   descontada la inflación. Es la resta, que es el único número que importa. */
+function rendimientoAnual(){
+  if(!S.snap) return null;
+  const f = S.snap, infl = S.ipc / f.ipc;
+  const real = x => x / infl - 1;
+  return {
+    pesos:  real(1),
+    plazo:  real(S.idxPlazo / f.idxPlazo),
+    dolar:  real(S.dolar / f.dolar),
+    bono:   real(S.idxBono / f.idxBono * (S.dolar / f.dolar)),
+    indice: real(S.indicePrecio / f.indice * (S.dolar / f.dolar)),
+  };
+}
 
 /* ---------- lecturas derivadas ---------- */
 const fechaMes  = () => (MES_INICIAL + S.mes) % 12;
@@ -613,29 +640,47 @@ function moverMercados(R){
     S.bonoPrecio = clamp(S.bonoPrecio + (obj - S.bonoPrecio) * .16 + rnd(-3.5, 3.5), 8, 118);
 
     if(S.bonoVN > 0){
-      const cupon = S.bonoVN * .011;              // ~14% anual en dólares
+      const cupon = S.bonoVN * .0053;             // ~6,5% anual en dólares
       S.usd += cupon; S.cuponTotal += cupon;
       if(S.mes % 6 === 0) S.avisos.push("Cobraste " + usd(cupon * 6) + " de cupones del bono.");
     }
-    /* Default: la quita. Es lo que hace que el cupón alto no sea plata gratis,
-       y solo pasa en crisis — que es exactamente cuando el bono se ve barato. */
-    if(S.regimen === "crisis" && Math.random() < .020){
+    /* Default: la quita. Es lo que hace que el cupón no sea plata gratis. Pasa
+       sobre todo en crisis, y también cuando el bono ya viene castigado — que es
+       cuando de verdad se cae, no cuando está tranquilo.
+
+       El precio se desploma lo tengas o no: el mercado no espera a ver si vos
+       estás adentro. Antes esto vivía dentro del `if` de abajo, así que en las
+       partidas donde no tenías bonos el default se declaraba pero la cotización
+       seguía como si nada — y el precio quedaba sano para cuando comprabas. */
+    const riesgoDefault = S.regimen === "crisis" ? .038
+                        : (S.bonoPrecio < 45 ? .011 : .0015);
+    if(Math.random() < riesgoDefault){
       S.bonoDefault = true;
       const quita = rnd(.55, .78);
+      S.bonoPrecio = rnd(15, 26);
       if(S.bonoVN > 0){
         S.bonoVN *= (1 - quita);
-        S.bonoPrecio = rnd(18, 30);
         animo(-12); S.golpes++;
         aprender("default");
         S.avisos.push("El país entró en default. Te reestructuran el bono con una quita del "
           + Math.round(quita*100) + "% y dejan de pagar cupones.");
+      } else {
+        S.avisos.push("El país entró en default. El bono se desplomó; por suerte no tenías.");
       }
     }
-  } else if(Math.random() < .035){
+  } else if(Math.random() < .022){
     // Se reestructura y vuelve a pagar. Tarde, peor, pero vuelve.
     S.bonoDefault = false; S.bonoPrecio = rnd(32, 46);
     S.avisos.push("Cerró el canje de deuda. El bono vuelve a pagar cupones, más chicos.");
   }
+
+  /* El índice del bono suma el cupón al cambio de precio. Sin el cupón parecería
+     que el bono solo pierde valor, que es exactamente la lectura equivocada. */
+  const precioAntes = S.idxBonoPrecio || S.bonoPrecio;
+  S.idxBono *= S.bonoDefault
+    ? (S.bonoPrecio / precioAntes)
+    : ((S.bonoPrecio / 100 + .0053) / (precioAntes / 100));
+  S.idxBonoPrecio = S.bonoPrecio;
 
   // --- índice global ---
   let r;
@@ -759,8 +804,10 @@ function avanzarMes(){
   }
 
   moverMercados(R);
+  if(!S.snap) S.snap = fotoMercados();
 
   // --- rendimientos y deuda ---
+  S.idxPlazo *= (1 + tasaPF());
   if(S.plazo > 0){
     const t = tasaPF();
     S.ultimaTasaPF = t;
@@ -836,6 +883,7 @@ function avanzarMes(){
   S.simPlazo = S.simPlazo * (1 + tasaPF()) + neto;
   S.simUsd += neto / S.dolar;
   S.simIndice += neto / S.dolar / S.indicePrecio;   // en unidades del índice
+  S.simBono   += neto / S.dolar / S.idxBono;        // en unidades de retorno total del bono
 
   guardar();
 }
@@ -2355,6 +2403,7 @@ function pantallaCartera(){
   pintarHud();
   const abiertos = rubrosAbiertos();
   const total = totalCartera(), v = valores();
+  const rend = rendimientoAnual();
   if(!objetivoCartera){
     objetivoCartera = {};
     // Arranca mostrando cómo estás parado hoy, no una propuesta nuestra.
@@ -2370,14 +2419,21 @@ function pantallaCartera(){
     <p class="texto" style="font-size:15px; color:var(--muted); margin:0 0 18px">
       Tenés ${fmt(total)}. Una vez por año podés reacomodar cómo está repartida.
       Mover plata paga comisión, así que rebalancear por rebalancear cuesta.</p>
+    ${rend ? `<p class="texto" style="font-size:14px; color:var(--dim); margin:-8px 0 16px">
+      Al lado de cada uno, cuánto rindió en los últimos doce meses <b>descontada la
+      inflación</b>. Un +0% significa que empataste con los precios; los pesos quietos
+      siempre pierden, y esa es toda la explicación que hace falta.</p>` : ""}
 
     <div class="card">
       ${abiertos.map(r => {
         const pctActual = total > 0 ? v[r.id] / total * 100 : 0;
         const obj = objetivoCartera[r.id] || 0;
+        const ren = rend ? rend[r.id] : null;
         return `<div class="rubro">
           <div class="rubro-cab">
-            <span class="rubro-n">${r.n}</span>
+            <span class="rubro-n">${r.n}
+              ${ren != null ? `<span class="rubro-ren ${ren >= 0 ? "pos" : "neg"}">${
+                ren >= 0 ? "+" : "−"}${(Math.abs(ren)*100).toFixed(1).replace(".",",")}% real</span>` : ""}</span>
             <span class="rubro-v">${fmtK(v[r.id])} <span class="rubro-hoy">hoy ${Math.round(pctActual)}%</span></span>
           </div>
           <div class="rubro-ctrl">
@@ -2413,7 +2469,8 @@ function pantallaCartera(){
     };
   });
   document.getElementById("saltar").onclick = () => {
-    S.ultimaRevision = S.mes; objetivoCartera = null; aprender("horizonte"); siguiente();
+    S.ultimaRevision = S.mes; S.snap = fotoMercados();
+    objetivoCartera = null; aprender("horizonte"); siguiente();
   };
   const ap = document.getElementById("aplicar");
   if(ap) ap.onclick = () => {
@@ -2421,7 +2478,8 @@ function pantallaCartera(){
     const usados = Object.values(objetivoCartera).filter(x => x >= 10).length;
     if(usados >= 3) aprender("diversif");
     if(Object.values(objetivoCartera).some(x => x >= 80)) aprender("concentr");
-    S.ultimaRevision = S.mes; objetivoCartera = null;
+    S.ultimaRevision = S.mes; S.snap = fotoMercados();
+    objetivoCartera = null;
     guardar();
     pantallaConsecuencia("Reacomodaste la cartera",
       movido > 0
@@ -2628,7 +2686,9 @@ function pantallaFinal(){
   const simPlazoUsd = S.simPlazo / S.dolar;
   const simUsdUsd   = S.simUsd;
   const simIndiceUsd = S.simIndice * S.indicePrecio;
-  const maxSim = Math.max(patrUsd, simPesosUsd, simPlazoUsd, simUsdUsd, simIndiceUsd, 1);
+  const simBonoUsd   = S.simBono * S.idxBono;
+  const maxSim = Math.max(patrUsd, simPesosUsd, simPlazoUsd, simUsdUsd,
+                          simIndiceUsd, simBonoUsd, 1);
 
   // --- logros que solo se pueden juzgar al final ---
   if(S.mesesEnRojo === 0) lograr("sinDeuda");
@@ -2730,6 +2790,8 @@ function pantallaFinal(){
         <span class="val">${usd(simUsdUsd)}</span></div>
       <div class="comp"><span class="nom">Todo al índice global</span>${barra(simIndiceUsd)}
         <span class="val">${usd(simIndiceUsd)}</span></div>
+      <div class="comp"><span class="nom">Todo al bono del país</span>${barra(simBonoUsd)}
+        <span class="val">${usd(simBonoUsd)}</span></div>
     </div>
     <p class="nota">Te tocó un país con estos regímenes: la inflación acumulada de la década fue
       ${pct(S.ipc - 1)}, el dólar pasó de $1.350 a ${fmt(S.dolar)}, hubo ${S.elecciones}

@@ -48,9 +48,9 @@ enseñaría a apostar y ganaría el que arriesgó todo y tuvo suerte.
   que aparezca cuando te echan.
 - Nadie te presta infinito. Cuando se corta el crédito, no queda otra que achicarse.
 
-Al final, el juego compara **tu mismo flujo de plata** contra cuatro estrategias mecánicas
-—todo en pesos, todo a plazo fijo, todo a dólares, todo al índice global— sobre el
-escenario exacto que te tocó. Ahí está el aprendizaje, más que en la partida.
+Al final, el juego compara **tu mismo flujo de plata** contra cinco estrategias mecánicas
+—todo en pesos, todo a plazo fijo, todo a dólares, todo al índice global, todo al bono—
+sobre el escenario exacto que te tocó. Ahí está el aprendizaje, más que en la partida.
 
 ## Cómo jugarlo
 
@@ -160,6 +160,22 @@ Las continuaciones esperan al menos año y medio, para que se sientan años y no
 seguidas. Medido sobre 600 partidas: se ven en promedio 3,13 de los 4 capítulos de Pedro,
 2,4 de los 3 de Vale y 2,5 de los 3 de Bautista.
 
+## La revisión anual muestra qué rindió cada cosa
+
+Al lado de cada instrumento se ve cuánto rindió en los últimos doce meses **descontada la
+inflación**. Es el único número que importa y es el que casi nadie mira: un plazo fijo al
+4% mensual con inflación del 5% te está haciendo perder, aunque el saldo de la cuenta suba.
+
+Medido sobre 300 partidas, rendimiento real anual:
+
+| | p10 | mediana | p90 | años que le ganan a la inflación |
+|---|---|---|---|---|
+| Pesos quietos | −36% | −26% | −11% | 0% |
+| Plazo fijo | −3% | +1% | +3% | 68% |
+| Dólares | −13% | −1% | +15% | 45% |
+| Bono del país | −24% | +9% | +50% | 65% |
+| Índice global | −16% | +10% | +32% | 73% |
+
 ## La colección
 
 Los conceptos y logros **no se reinician** al empezar otra vida: se acumulan en el
@@ -194,9 +210,7 @@ Sobre 700 partidas jugadas al azar, el 71% llega a los diez años, 19% termina e
 Prototipo, 49 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
 jugar otra partida?** Si la respuesta es no, nada del resto importa.
 
-Falta: la revisión anual todavía no te muestra qué hizo cada instrumento en los últimos
-doce meses —que es justo el dato que necesitás para decidir bien—, las escenas de pareja e
-hijos son más flacas que las de plata, y no hay sonido.
+Falta: las escenas de pareja e hijos son más flacas que las de plata, y no hay sonido.
 
 ---
 
