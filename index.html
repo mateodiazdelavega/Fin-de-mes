@@ -322,6 +322,7 @@ function nuevaPartida(origen){
     finTemprano: null,                // si la partida se corta antes de los 10 años
     ultimaRevision: -1,               // último cierre de año ya revisado
     golpes: 0, suertes: 0,            // cuántas veces te pegó y te sonrió el azar
+    mesesAhogado: 0,                  // meses seguidos gastando más de lo que entra
     serie: [],                        // patrimonio real mes a mes, para el gráfico
     /* Índices de referencia base 1: qué le habría pasado a un peso puesto en cada
        instrumento desde el arranque. Existen aunque no tengas nada ahí — así la
@@ -896,6 +897,9 @@ function avanzarMes(){
       S.avisos.push("Te refinanciaron " + fmt(exceso) + " de tarjeta en 24 cuotas. Ya no te dan más crédito.");
     }
   }
+  // Meses seguidos en los que lo fijo supera lo que entra. Un mes malo le pasa a
+  // cualquiera; diez seguidos es otra cosa, y es lo que define la insolvencia.
+  S.mesesAhogado = egresoFijo() > (S.trabajo ? S.sueldo : 0) * 1.05 ? S.mesesAhogado + 1 : 0;
   S.picoDeuda = Math.max(S.picoDeuda, S.deuda);
   if(S.deuda > 0) S.mesesEnRojo++;
 
@@ -931,9 +935,17 @@ function avanzarMes(){
   // --- despido aleatorio ---
   if(S.trabajo && S.mes > 8 && Math.random() < R.pDespido){
     S.trabajo = null;
-    S.avisos.push("Te desvincularon. Te pagan una indemnización y a partir del mes que viene no entra más nada.");
-    cobrar(S.sueldo * rndI(2,5), "Indemnización");
-    animo(-9);
+    /* Un tercio de las veces no hay indemnización: en negro, monotributo, o la
+       empresa que "va a arreglar" y no arregla. Eso es lo que convierte un
+       despido en una emergencia. */
+    if(Math.random() < .25){
+      S.avisos.push("Te desvincularon sin indemnización: estabas por fuera, y lo que prometen arreglar va a tardar meses.");
+      animo(-14);
+    } else {
+      S.avisos.push("Te desvincularon. Te pagan una indemnización y a partir del mes que viene no entra más nada.");
+      cobrar(S.sueldo * rndI(2,5), "Indemnización");
+      animo(-9);
+    }
   }
 
   // Patrimonio en pesos constantes: en pesos corrientes toda curva sube y no dice nada.
@@ -957,18 +969,20 @@ function avanzarMes(){
    ========================================================================== */
 
 /* Las tres puertas de entrada. Lo que cambia de verdad no es el sueldo: es
-   cuánto te sobra a fin de mes. Arriba se ahorra como un 30%, abajo un 8%, que
-   es la diferencia entre elegir y aguantar. */
+   cuánto te sobra a fin de mes — 28%, 15% y 8%. Son números incómodos a
+   propósito: la mediana argentina real ahorra bastante menos, y con márgenes
+   generosos el juego se ganaba solo. Abajo de todo, juntar un colchón de seis
+   meses lleva casi la década entera si no pasa nada más. */
 const ORIGENES = [
   { id:"casa", titulo:"En casa de tus viejos",
     sub:"No pagás alquiler. Sí pagás la culpa de que te lo recuerden.",
-    pesos:120000, sueldo:840000, gastos:590000, trabajo:"Atención al cliente" },
+    pesos:120000, sueldo:840000, gastos:604000, trabajo:"Atención al cliente" },
   { id:"compartido", titulo:"Un depto compartido en Almagro",
     sub:"Dos compañeros, un baño, y el alquiler que sube cada seis meses.",
-    pesos:180000, sueldo:910000, gastos:765000, trabajo:"Administrativo en una PyME" },
+    pesos:180000, sueldo:910000, gastos:776000, trabajo:"Administrativo en una PyME" },
   { id:"solo", titulo:"Solo, y te bancás todo",
-    sub:"Nadie te ayuda si el mes se pone feo. Difícil.",
-    pesos:240000, sueldo:1050000, gastos:960000, trabajo:"Vendedor con comisiones" },
+    sub:"Nadie te ayuda si el mes se pone feo. Muy difícil.",
+    pesos:240000, sueldo:1050000, gastos:968000, trabajo:"Vendedor con comisiones" },
 ];
 
 /* ---------- HITOS: se disparan en orden, en el mes indicado ---------- */
@@ -2177,6 +2191,54 @@ const EVENTOS = [
   ]
 },
 {
+  /* La escena que justifica todo el colchón. Cuesta entre cuatro y siete meses
+     de gastos: con ahorros es un año malo, sin ahorros es el principio de una
+     espiral. Ninguna otra escena mostraba esa diferencia porque ninguna costaba
+     lo suficiente — el peor golpe eran uno o dos sueldos. */
+  id:"emergencia", peso:1, cond: () => S.mes > 38 && !S.flags.emergencia,
+  texto: () => `<p>Llaman un martes a las seis de la mañana. A tu viejo lo internaron de
+  urgencia y hay que operar.</p>
+  <p>La obra social cubre una parte y discute el resto. Entre lo que no cubre, el sanatorio,
+  los estudios y la rehabilitación, la cuenta da alrededor de ${fmt(egresoFijo()*4.0)}.</p>
+  <p>Tenés ${aireTexto(aireLiquido())} meses de gastos en plata disponible.</p>`,
+  opciones: [
+    { txt:"Pagarlo con lo que tenés guardado",
+      sub:"Para esto era.",
+      hacer(){ S.flags.emergencia = true; aprender("fondo"); aprender("liquidez");
+        const tenia = aireLiquido();
+        gastar(egresoFijo() * 4.0, "Operación de tu viejo");
+        animo(tenia >= 5 ? -6 : -16); S.golpes++;
+        recordar("Pagó la operación de su viejo");
+        return tenia >= 5
+          ? `<p>Autorizás todo por teléfono sin tener que pensarlo dos veces.</p>
+             <p>Se te fueron cuatro meses de ahorro en cuatro días y ni siquiera fue la parte
+             difícil de la semana. Para esto era el colchón: no para ganar nada, para que un
+             martes a las seis de la mañana la plata no sea uno de tus problemas.</p>`
+          : `<p>Juntás todo lo que hay, vendés lo que se pueda vender, y aun así falta.</p>
+             <p>Terminás firmando cosas que no querías firmar. No es que hayas decidido mal
+             esta semana: es que llegaste sin margen, y sin margen no se decide, se acepta.</p>`; } },
+    { txt:"Financiarlo como se pueda",
+      sub:"Cuotas del sanatorio y lo que entre en la tarjeta.",
+      hacer(){ S.flags.emergencia = true; aprender("interesComp");
+        const costo = egresoFijo() * 4.0;
+        S.cuotas.push({ monto: costo * 1.35 / 24, restantes: 24, desc:"Gastos médicos" });
+        animo(-11); S.golpes++;
+        recordar("Financió la operación de su viejo");
+        return `<p>Veinticuatro cuotas con un recargo que nadie te termina de explicar.</p>
+        <p>Resolvés el martes y te comprás dos años de cuotas. Es lo que hace la mayoría
+        de la gente, y es exactamente por qué una emergencia sin colchón no se termina cuando
+        se termina la emergencia.</p>`; } },
+    { txt:"Juntarlo entre los hermanos y los tíos",
+      sub:"Poner lo que puedas y pedir por el resto.",
+      hacer(){ S.flags.emergencia = true; aprender("riesgoContr");
+        gastar(egresoFijo() * 1.7, "Tu parte de la operación"); animo(-8); S.golpes++;
+        lograr("buenPibe"); recordar("Juntaron la operación en familia");
+        return `<p>Se arma un grupo de WhatsApp que nadie quería y cada uno pone lo que puede.</p>
+        <p>Sale, y quedan cuentas pendientes que no son de plata: quién puso, quién no pudo y
+        quién dijo que iba a poner. Eso dura bastante más que la deuda.</p>`; } },
+  ]
+},
+{
   /* La única defensa contra la inflación de estilo de vida, y tiene que ser una
      decisión: si el gasto persiguiera al sueldo sin que puedas hacer nada, sería
      un castigo y no una lección. */
@@ -2754,8 +2816,13 @@ function finalTemprano(){
       <p>No hubo una decisión que te trajo acá. Hubo una seguidilla de meses sin margen, y cuando
       no hay margen las decisiones las toma la urgencia.</p>` };
 
-  if(S.mes > 24 && deudaTotal() > (S.trabajo ? S.sueldo : S.gastos) * 14
-     && patrimonio() < 0)
+  /* Insolvencia real: lo que tenés que pagar todos los meses supera lo que
+     entra, tenés deuda cara encima y no hay patrimonio del cual sacarlo.
+     Antes se medía el total de cuotas comprometidas, y con eso un crédito
+     hipotecario a cinco años alcanzaba solo para gatillar el final — que es
+     justo al revés: la hipoteca es la deuda sana. */
+  if(S.mes > 24 && S.mesesAhogado >= 10 && patrimonio() < -egresoFijo() * 3
+     && S.deuda > limiteCredito() * .7)
     return { id:"concurso", titulo:"No daban los números",
       texto:`<p>Te sentás con alguien que sabe y hacen la cuenta completa. Con lo que entra y lo
       que se debe, no hay forma.</p>
@@ -2805,7 +2872,7 @@ const $hud = document.getElementById("hud");
 function pintarHud(){
   if(!S){ $hud.innerHTML = ""; return; }
   const a = aire();
-  const claseAire = a < 3 ? "mala" : a >= 12 ? "buena" : "";
+  const claseAire = a < 2 ? "mala" : a >= 8 ? "buena" : "";
   const colorAnimo = S.animo < 30 ? "var(--rojo)" : S.animo < 60 ? "var(--oro)" : "var(--verde)";
   $hud.innerHTML = `
     <div class="hud">
@@ -3246,12 +3313,12 @@ function pantallaFinal(){
   if(S.finTemprano){
     titulo = S.finTemprano.titulo;
     epilogo = S.finTemprano.texto;
-  } else if(a >= 24 && animoProm >= 58){
+  } else if(a >= 12 && animoProm >= 55){
     titulo = "Llegaste con aire";
     epilogo = `<p>Treinta y dos años. Si mañana se corta todo, tenés ${a.toFixed(0)} meses para
     resolverlo sin pedirle nada a nadie.</p><p>No sos rico. Sos otra cosa, que se nota menos y
     vale más: sos alguien que puede decir que no.</p>`;
-  } else if(a >= 24){
+  } else if(a >= 12){
     titulo = "Llegaste con plata y cansado";
     // El motivo del desgaste cambia según cómo fue la década: no es lo mismo
     // haberla pasado mal debiendo que haberla pasado mal privándose.
@@ -3264,7 +3331,7 @@ function pantallaFinal(){
          el mundo.</p><p>Pero mirá para atrás y fijate cuántas veces dijiste "ahora no". La plata
          era para algo. Guardarla no era el objetivo, era el medio, y en algún momento de esta
          década se te dieron vuelta los dos.</p>`;
-  } else if(a >= 9){
+  } else if(a >= 5){
     titulo = "Llegaste parado";
     epilogo = `<p>No es una fortuna, pero tenés ${a.toFixed(1).replace(".",",")} meses de aire y
     ninguna deuda que te desvele.</p><p>Es más de lo que suena. La mayoría de la gente termina
@@ -3309,7 +3376,7 @@ function pantallaFinal(){
       avanzaste. Tocala para recorrerla.</p>
 
     <div class="stat-grid">
-      <div class="stat"><div class="n" style="color:${a<3?"var(--rojo)":a>=12?"var(--verde)":"var(--oro)"}">
+      <div class="stat"><div class="n" style="color:${a<2?"var(--rojo)":a>=8?"var(--verde)":"var(--oro)"}">
         ${aireTexto(a)}</div>
         <div class="l">meses de aire<br>(cuánto aguantás sin ingresos)</div></div>
       <div class="stat"><div class="n">${usd(patrUsd)}</div>

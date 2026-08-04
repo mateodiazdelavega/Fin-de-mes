@@ -249,12 +249,24 @@ al azar:
 
 | | al azar | jugando bien |
 |---|---|---|
-| Llegaste con aire | 1% | 27% |
-| Llegaste parado | 30% | 18% |
-| Llegaste justo | 22% | 43% |
-| Quiebre o tocar fondo | 41% | 10% |
+| Llegaste con aire | 0% | 19% |
+| Llegaste parado | 27% | 14% |
+| Llegaste justo | 22% | 47% |
+| Quiebre o tocar fondo | 46% | 14% |
 
-Jugar bien cambia mucho las cosas y no garantiza nada, que es como tiene que ser.
+Jugar bien cambia mucho las cosas y no garantiza nada, que es como tiene que ser. (El
+"jugando bien" es un bot que prueba cada opción y se queda con la que lo deja mejor parado
+en ese momento: no planifica a diez años, así que una persona que sí lo haga debería
+superarlo.)
+
+Además de la inflación de estilo de vida, tres cosas más lo hacen difícil:
+
+- **Los márgenes son chicos.** Se ahorra 28%, 15% u 8% del sueldo según de dónde arranques.
+- **Una emergencia cuesta cuatro meses de gastos.** A tu viejo lo internan y hay que operar:
+  con colchón es un año malo, sin colchón es el principio de una espiral. Es la escena que
+  justifica todo lo demás.
+- **Uno de cada cuatro despidos no trae indemnización.** En negro, monotributo, o la empresa
+  que "va a arreglar" y no arregla.
 
 ## Formas de perder
 
@@ -270,7 +282,7 @@ Sobre 700 partidas jugadas al azar, el 71% llega a los diez años, 19% termina e
 
 ## Estado
 
-Prototipo, 57 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
+Prototipo, 58 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
 jugar otra partida?** Si la respuesta es no, nada del resto importa.
 
 Falta: el 92% de las pantallas siguen siendo una escena o su consecuencia — el pronóstico
