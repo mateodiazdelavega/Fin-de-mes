@@ -226,6 +226,30 @@ inflación. Es deliberado: en pesos corrientes cualquier curva sube y el gráfic
 Ésta muestra si de verdad avanzaste. Se puede recorrer con el dedo para ver qué tenías en
 cualquier mes de la década.
 
+## Por qué es difícil
+
+El gasto persigue al sueldo **hacia arriba y no baja solo**. Cada aumento se convierte en más
+nivel de vida en un par de años sin que lo decidas: cambiás el celular, salís más, dejás de
+mirar algunos precios. Es la razón real por la que el que gana el triple que hace diez años
+sigue llegando justo, y sin eso el juego era demasiado fácil.
+
+Tiene una defensa, y es una decisión explícita: cuando llega un aumento grande podés elegir
+mantener el nivel de vida que tenías. Es lo más difícil de la lista y lo que más plata deja.
+Nadie te felicita por eso y no se puede contar en ningún asado — la única prueba de que
+funcionó aparece cinco años después.
+
+Medido con un jugador que prueba cada opción y se queda con la mejor, contra uno que elige
+al azar:
+
+| | al azar | jugando bien |
+|---|---|---|
+| Llegaste con aire | 4% | 36% |
+| Llegaste parado | 33% | 13% |
+| Llegaste justo | 23% | 39% |
+| Quiebre o tocar fondo | 37% | 12% |
+
+Jugar bien cambia mucho las cosas y no garantiza nada, que es como tiene que ser.
+
 ## Formas de perder
 
 La década puede cortarse antes de los diez años, y no como castigo por jugar mal:
@@ -240,7 +264,7 @@ Sobre 700 partidas jugadas al azar, el 71% llega a los diez años, 19% termina e
 
 ## Estado
 
-Prototipo, 56 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
+Prototipo, 57 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
 jugar otra partida?** Si la respuesta es no, nada del resto importa.
 
 Falta: el 92% de las pantallas siguen siendo una escena o su consecuencia — el pronóstico

@@ -296,6 +296,10 @@ function nuevaPartida(origen){
     gastosPiso: origen.gastos * .55,
     // Referencia de cuánto valía tu sueldo el primer día, en términos reales.
     sueldoObjetivo: origen.sueldo,
+    /* Qué porcentaje del sueldo te termina llevando vivir. Sube solo: cada
+       aumento se convierte en más gasto en un par de años sin que lo decidas.
+       Es la razón por la que ganar más casi nunca significa ahorrar más. */
+    ratioVida: origen.gastos / origen.sueldo,
     sinTrabajo: 0,                    // meses seguidos sin laburo
     animo: 62,
     dolar: DOLAR_BASE, tcr: 1,        // tcr: dólar medido contra la inflación. 1 = a la par
@@ -365,6 +369,7 @@ const CONCEPTOS = {
   volatilidad: { n:"Volatilidad", t:"Cuánto se mueve algo mientras vas. El índice global sube a diez años y en el medio se cae un 30% dos o tres veces. La caída no es el problema; el problema es vender adentro de la caída." },
   horizonte:   { n:"Horizonte", t:"Cuánto tiempo podés dejar la plata quieta. Es lo que decide en qué podés invertir, mucho más que cuánta tenés. Plata que necesitás en seis meses no va a acciones, por más que las acciones rindan." },
   cicloElec:   { n:"Riesgo político", t:"Antes de una elección todos los activos del país cotizan con miedo, porque nadie sabe qué viene. No se gana adivinando el resultado: se gana estando parado de una forma que sobreviva a cualquiera de los dos." },
+  nivelVida:   { n:"Inflación de estilo de vida", t:"Cada aumento se convierte en más gasto en un par de años sin que lo decidas: cambiás el celular, salís más, dejás de mirar algunos precios. Por eso el que gana el triple que hace diez años sigue llegando justo. Lo que define cuánto ahorrás no es cuánto entra, es la distancia entre lo que entra y lo que gastás." },
   concentr:    { n:"Concentración", t:"Poner mucho en una sola cosa. Cuando sale bien parece visión; cuando sale mal parece obvio que era una locura. Es la misma decisión en los dos casos — lo único que cambió fue la suerte." },
 };
 
@@ -786,6 +791,21 @@ function avanzarMes(){
   S.dolar *= (1 + d);
   S.tcr = (S.dolar / DOLAR_BASE) / S.ipc;
 
+  /* --- inflación de estilo de vida ---
+     El gasto persigue al sueldo hacia arriba y no baja solo. Un aumento se
+     licúa en el nivel de vida en unos dos años: cambiás el celular, salís más,
+     dejás de mirar el precio de algunas cosas. Nadie decide esto de una vez;
+     pasa. Es lo que hace que el que gana el triple igual llegue justo. */
+  if(S.trabajo){
+    const objetivo = S.sueldo * S.ratioVida;
+    if(objetivo > S.gastos) S.gastos += (objetivo - S.gastos) * .030;
+    // y el listón sube despacio con la edad: lo que a los 22 era un lujo, a los 30 es normal
+    // El tope frena el crecimiento; nunca baja lo que ya estaba. Con Math.min a
+    // secas, el origen que arranca en 0,91 se veía empujado a 0,90 — o sea que
+    // el sistema le regalaba margen justo al que menos tiene.
+    if(S.ratioVida < .90) S.ratioVida = Math.min(S.ratioVida + .0002, .90);
+  }
+
   // --- los gastos se ajustan TODOS los meses, el sueldo no ---
   const ajuste = 1 + S.inflMes * rnd(.85, 1.10);
   S.gastos *= ajuste;
@@ -852,6 +872,7 @@ function avanzarMes(){
     if(t < S.inflMes && S.plazoMeses > 2) aprender("tasaReal");
   }
   if(S.pesos > S.gastos * 3 && S.inflMes > .02) aprender("costoOport");
+  if(S.mes > 30 && S.gastos / S.sueldo > S.ratioVida * .97) aprender("nivelVida");
   if(S.deuda > 0){
     const i = S.deuda * tasaDeuda();
     S.deuda += i;
@@ -2143,6 +2164,48 @@ const EVENTOS = [
         return `<p>Seguís como venías.</p>
         <p>A veces pasa solo. A veces no, y lo que empezó como cansancio termina siendo algo de
         lo que cuesta bastante más volver.</p>`; } },
+  ]
+},
+{
+  /* La única defensa contra la inflación de estilo de vida, y tiene que ser una
+     decisión: si el gasto persiguiera al sueldo sin que puedas hacer nada, sería
+     un castigo y no una lección. */
+  id:"aumento-grande", repetible:true, peso:3,
+  cond: () => !!S.trabajo && S.mes > 20 && S.sueldo / S.ipc > S.sueldoObjetivo * 1.14,
+  texto: [
+    () => `<p>Por primera vez en años el sueldo te sobra de verdad. Entre el aumento y lo que
+    venías haciendo, este mes te quedan ${fmt(Math.max(0, S.sueldo - S.gastos))} después de
+    pagar todo.</p>
+    <p>Y aparece, sin que la llames, una lista de cosas que hasta ahora no mirabas: el
+    departamento un poco mejor, el auto, salir sin fijarte.</p>`,
+    () => `<p>Otro salto de ingresos. Ya sabés lo que viene después, porque te pasó: en un año
+    y medio esta plata que sobra va a estar toda comprometida en algo.</p>`,
+  ],
+  opciones: [
+    { txt:"Mantener el nivel de vida que tenías",
+      sub:"Vivir como el año pasado y guardar toda la diferencia.",
+      hacer(){ aprender("nivelVida"); S.ratioVida *= .86; animo(-5);
+        recordar("Se aguantó no subir el nivel de vida");
+        return `<p>Seguís en el mismo departamento, con el mismo teléfono, comprando en el
+        mismo lugar.</p>
+        <p>Es lo más difícil de esta lista y lo que más plata deja. Nadie te va a felicitar
+        por esto y no vas a poder contarlo en ningún asado: la única prueba de que funcionó
+        va a estar en tu cuenta dentro de cinco años.</p>`; } },
+    { txt:"Subir un poco, y guardar el resto",
+      sub:"Algunos gustos sí, el grueso al colchón.",
+      hacer(){ aprender("nivelVida"); S.ratioVida *= .94; animo(4);
+        recordar("Subió el nivel de vida a medias");
+        return `<p>Te mudás a algo un poco mejor y te sacás dos o tres ganas de encima.</p>
+        <p>Sostenible, que es la palabra que importa. Un plan que aguantás diez años le gana a
+        uno perfecto que abandonás en marzo.</p>`; } },
+    { txt:"Vivir mejor, para eso laburaste",
+      sub:"El gasto se acomoda solo al sueldo nuevo.",
+      hacer(){ aprender("nivelVida"); S.ratioVida = Math.min(S.ratioVida * 1.06, .93); animo(11);
+        recordar("Subió el nivel de vida con el aumento");
+        return `<p>Departamento nuevo, algunas cosas que venías queriendo, y una sensación
+        muy concreta de que valió la pena todo lo anterior.</p>
+        <p>Es una decisión legítima y se paga después: en dos años tu gasto fijo va a estar a
+        la altura del sueldo nuevo, y si el sueldo se cae, el gasto no baja igual de rápido.</p>`; } },
   ]
 },
 {
