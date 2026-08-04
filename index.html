@@ -922,13 +922,17 @@ function avanzarMes(){
      mensual concreto. Guardar todo diez años y no vivir nada ahora termina en
      quiebre, que es exactamente lo que el juego quiere que se sienta. */
   const a = aire();
-  animo(a < 0 ? -2.2 : a < 1 ? -1.1 : -.30);
+  animo(a < 0 ? -2.0 : a < 1 ? -1.0 : -.22);
   if(S.deuda > S.sueldo) animo(-.8);
   if(!S.trabajo) animo(-1.8);
   // Lo que elegiste para cuidarte sigue rindiendo, no fue un gasto de un día.
   if(S.flags.terapia) animo(.34);
   if(S.flags.pareja)  animo(.26);
   if(S.flags.entrena) animo(.30);
+  /* Seguir en el cuarto de siempre a los veintipico largos tiene un costo que
+     no aparece en ninguna planilla. Sin esto, el origen "casa" no pagaba nunca
+     por su ventaja. */
+  if(S.origen === "casa" && !S.flags.seFue && S.mes > 40) animo(-.30);
   S.animoSuma += S.animo; S.animoN++;
   S.animoCero = S.animo <= 2 ? S.animoCero + 1 : 0;
 
@@ -969,20 +973,22 @@ function avanzarMes(){
    ========================================================================== */
 
 /* Las tres puertas de entrada. Lo que cambia de verdad no es el sueldo: es
-   cuánto te sobra a fin de mes — 28%, 15% y 8%. Son números incómodos a
+   cuánto te sobra a fin de mes — 22%, 18% y 11%. Vivir en casa de los viejos
+   ahorraba el 28% y no pagaba alquiler nunca, ni al año diez: acumulaba 4,7
+   meses de aire por año y al segundo año el juego ya estaba ganado. Son números incómodos a
    propósito: la mediana argentina real ahorra bastante menos, y con márgenes
    generosos el juego se ganaba solo. Abajo de todo, juntar un colchón de seis
    meses lleva casi la década entera si no pasa nada más. */
 const ORIGENES = [
   { id:"casa", titulo:"En casa de tus viejos",
-    sub:"No pagás alquiler. Sí pagás la culpa de que te lo recuerden.",
-    pesos:120000, sueldo:840000, gastos:604000, trabajo:"Atención al cliente" },
+    sub:"No pagás alquiler, pero tampoco sos del todo dueño de tu vida.",
+    pesos:120000, sueldo:840000, gastos:655000, trabajo:"Atención al cliente" },
   { id:"compartido", titulo:"Un depto compartido en Almagro",
     sub:"Dos compañeros, un baño, y el alquiler que sube cada seis meses.",
-    pesos:180000, sueldo:910000, gastos:776000, trabajo:"Administrativo en una PyME" },
+    pesos:180000, sueldo:910000, gastos:746000, trabajo:"Administrativo en una PyME" },
   { id:"solo", titulo:"Solo, y te bancás todo",
     sub:"Nadie te ayuda si el mes se pone feo. Muy difícil.",
-    pesos:240000, sueldo:1050000, gastos:968000, trabajo:"Vendedor con comisiones" },
+    pesos:240000, sueldo:1050000, gastos:934000, trabajo:"Vendedor con comisiones" },
 ];
 
 /* ---------- HITOS: se disparan en orden, en el mes indicado ---------- */
@@ -1316,6 +1322,46 @@ const HITOS = [
         return `<p>Hacés la cuenta tres veces y no da.</p>
         <p>No da porque los sueldos en dólares de este país y los precios de las propiedades
         viven en dos economías distintas. No es un problema tuyo de disciplina.</p>`; } },
+  ]
+},
+{
+  /* El origen "casa" tenía una ventaja que no vencía nunca: la escena del
+     aumento de alquiler está bloqueada para él, así que llegaba al año diez sin
+     haber pagado un peso de techo. Este hito cierra eso. */
+  id:"irse-de-casa", mes:42, cond: () => S.origen === "casa" && !S.flags.seFue,
+  texto: () => `<p>Tenés veinticinco años y seguís durmiendo en el mismo cuarto que a los
+  doce. Tu vieja no dice nada y por eso mismo lo escuchás todos los días.</p>
+  <p>Un dos ambientes en el barrio sale ${fmt(S.gastos*.55)} por mes, más depósito, más
+  comisión, más lo que aparezca.</p>`,
+  opciones: [
+    { txt:"Irte",
+      sub:"Se te va la mitad de lo que ahorrabas. Se te viene tu vida.",
+      hacer(){ S.flags.seFue = true; S.origen = "compartido";
+        gastar(S.gastos * 1.9, "Depósito, comisión y mudanza");
+        S.gastos *= 1.52; S.gastosPiso *= 1.52; S.ratioVida = Math.min(S.ratioVida * 1.28, .90);
+        animo(16); recordar("Se fue a vivir solo");
+        return `<p>Dos viajes con el auto de un amigo y el departamento vacío la primera
+        noche.</p>
+        <p>Tu capacidad de ahorro se partió al medio de un día para el otro. También se
+        terminó de golpe el subsidio invisible que te venían dando hace tres años, que era la
+        única razón por la que podías guardar tanto.</p>`; } },
+    { txt:"Irte con alguien, para que salga menos",
+      sub:"Compartir baja el costo y sube el ruido.",
+      hacer(){ S.flags.seFue = true; S.origen = "compartido";
+        gastar(S.gastos * 1.4, "Depósito y mudanza");
+        S.gastos *= 1.34; S.gastosPiso *= 1.34; S.ratioVida = Math.min(S.ratioVida * 1.18, .90);
+        animo(11); recordar("Se mudó a un depto compartido");
+        return `<p>Un tres ambientes con dos personas que casi no conocés.</p>
+        <p>Sale bastante menos que irte solo y por eso lo hace medio país. Compartir es, a esta
+        edad, la diferencia entre poder guardar algo y no.</p>`; } },
+    { txt:"Quedarte un tiempo más",
+      sub:"Barato. No gratis.",
+      hacer(){ S.gastos *= 1.08; animo(-6); recordar("Se quedó en casa de sus viejos");
+        return `<p>Le decís a tu vieja que te quedás un tiempo más y ella dice que sí antes de
+        que termines la frase.</p>
+        <p>Seguís ahorrando como nadie de tu edad. Y todos los meses hay una conversación que
+        no tenés, una persona que no invitás, y una parte de tu vida que sigue esperando. Eso
+        se paga, solo que no en pesos.</p>`; } },
   ]
 },
 {

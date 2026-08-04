@@ -247,24 +247,36 @@ moverse. Guardar todo diez años y no vivir nada termina en quiebre.
 Medido con un jugador que prueba cada opción y se queda con la mejor, contra uno que elige
 al azar:
 
-| | al azar | jugando bien |
-|---|---|---|
-| Llegaste con aire | 0% | 19% |
-| Llegaste parado | 27% | 14% |
-| Llegaste justo | 22% | 47% |
-| Quiebre o tocar fondo | 46% | 14% |
+Probado con bots que prueban cada opción y se quedan con la mejor, con dos criterios
+distintos:
 
-Jugar bien cambia mucho las cosas y no garantiza nada, que es como tiene que ser. (El
-"jugando bien" es un bot que prueba cada opción y se queda con la que lo deja mejor parado
-en ese momento: no planifica a diez años, así que una persona que sí lo haga debería
-superarlo.)
+| | al azar | equilibrado | ahorrador |
+|---|---|---|---|
+| Meses de aire (mediana) | 5,2 | 5,9 | **23,7** |
+| Llegaste con aire | 0% | 8% | 1% |
+| Con plata y cansado | 1% | 4% | **47%** |
+| Quiebre o tocar fondo | 47% | 7% | 6% |
+
+Lo importante es la última columna: **el que optimiza solo la plata termina rico y roto casi
+la mitad de las veces.** Ninguna estrategia miope llega al mejor final, y esa es exactamente
+la lección.
+
+Hay una salida, y ninguno de los dos bots la encuentra porque hace falta entender el
+sistema: la terapia, la pareja y entrenar suman +0,90 de ánimo por mes contra una caída
+base de −0,22. El que descubre eso puede ahorrar y llegar entero a la vez.
 
 Además de la inflación de estilo de vida, tres cosas más lo hacen difícil:
 
-- **Los márgenes son chicos.** Se ahorra 28%, 15% u 8% del sueldo según de dónde arranques.
+- **Los márgenes son chicos.** Se ahorra 22%, 18% u 11% del sueldo según de dónde arranques,
+  y la suma de todos los golpes de la década se come buena parte de eso.
 - **Una emergencia cuesta cuatro meses de gastos.** A tu viejo lo internan y hay que operar:
   con colchón es un año malo, sin colchón es el principio de una espiral. Es la escena que
   justifica todo lo demás.
+- **Vivir en casa de los viejos no es gratis para siempre.** A los veinticinco hay que
+  decidir, y ahí aparece el alquiler que nunca pagaste. Antes ese origen ahorraba el 28% y
+  la escena del aumento de alquiler estaba bloqueada para él: llegaba al año diez sin haber
+  pagado un peso de techo, acumulaba 4,7 meses de aire por año y al segundo año el juego ya
+  estaba ganado.
 - **Uno de cada cuatro despidos no trae indemnización.** En negro, monotributo, o la empresa
   que "va a arreglar" y no arregla.
 
@@ -282,7 +294,7 @@ Sobre 700 partidas jugadas al azar, el 71% llega a los diez años, 19% termina e
 
 ## Estado
 
-Prototipo, 58 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
+Prototipo, 59 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
 jugar otra partida?** Si la respuesta es no, nada del resto importa.
 
 Falta: el 92% de las pantallas siguen siendo una escena o su consecuencia — el pronóstico
