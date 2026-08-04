@@ -122,6 +122,10 @@ Una vez por año de juego ves toda tu plata junta y podés reacomodar cómo est�
 Diez momentos en toda la partida, a propósito: si pudieras tocar la cartera todos los
 meses, esto sería un simulador de trading, que es lo contrario de lo que queremos enseñar.
 
+Cada activo tiene su propia perilla. Al mover una, las demás se acomodan en proporción a
+como estaban, así que siempre suma 100% y nunca hay que bajar algo primero para poder subir
+otra cosa. Debajo de cada perilla se ve en pesos cuánto queda en ese activo.
+
 Mover plata paga comisión (0,8% por operación, más el spread del dólar), así que
 rebalancear por rebalancear cuesta — y eso también es parte de la lección.
 

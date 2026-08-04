@@ -152,15 +152,37 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
 .rubro-ren{display:inline-block; margin-left:7px; font-size:11.5px;
   font-variant-numeric:tabular-nums; white-space:nowrap}
 .rubro-ren.pos{color:var(--verde)} .rubro-ren.neg{color:var(--rojo)}
-.rubro-ctrl{display:flex; align-items:center; gap:10px}
-.paso{width:34px; height:34px; flex:0 0 auto; border-radius:9px; border:1px solid var(--line);
-  background:var(--card2); color:var(--text); font-size:17px; font-family:inherit; cursor:pointer;
-  line-height:1; display:flex; align-items:center; justify-content:center}
-.paso:hover:not([disabled]){border-color:#4a4038; color:var(--oro)}
-.paso[disabled]{opacity:.3; cursor:not-allowed}
-.rubro-barra{flex:1; height:6px; background:var(--line); border-radius:3px; overflow:hidden}
-.rubro-barra i{display:block; height:100%; background:var(--oro); transition:width .18s ease}
-.rubro-pct{font-size:13.5px; font-variant-numeric:tabular-nums; width:38px; text-align:right; flex:0 0 auto}
+.rubro-ctrl{display:flex; align-items:center; gap:12px}
+.rubro-pct{font-size:13.5px; font-variant-numeric:tabular-nums; width:40px; text-align:right;
+  flex:0 0 auto; color:var(--oro)}
+.rubro-monto{font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; margin-top:5px}
+
+/* Perillas. Los navegadores no comparten una sola forma de estilar un range, así
+   que va el pseudo-elemento de WebKit y el de Firefox por separado. El área
+   táctil se agranda con padding para que se pueda arrastrar con el dedo. */
+.perilla{
+  flex:1; -webkit-appearance:none; appearance:none; background:transparent;
+  height:26px; margin:0; padding:0; cursor:pointer; min-width:0;
+}
+/* El relleno va por variable CSS porque WebKit no tiene un pseudo-elemento de
+   progreso como Firefox: sin esto la barra queda gris entera y no se ve cuánto
+   pusiste. La variable la escribe refrescarCartera() al mover. */
+.perilla::-webkit-slider-runnable-track{
+  height:6px; border-radius:3px;
+  background:linear-gradient(to right, var(--oro) var(--fill,0%), var(--line) var(--fill,0%));
+}
+.perilla::-moz-range-track{ height:6px; border-radius:3px; background:var(--line); }
+.perilla::-moz-range-progress{ height:6px; border-radius:3px; background:var(--oro); }
+.perilla::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none; width:20px; height:20px; border-radius:50%;
+  background:var(--oro); border:3px solid var(--card); margin-top:-7px;
+  box-shadow:0 0 0 1px var(--line);
+}
+.perilla::-moz-range-thumb{
+  width:20px; height:20px; border-radius:50%; background:var(--oro);
+  border:3px solid var(--card); box-shadow:0 0 0 1px var(--line);
+}
+.perilla:focus-visible{ outline:2px solid var(--oro); outline-offset:4px; border-radius:6px; }
 .rubro-total{margin-top:14px; padding-top:11px; border-top:1px solid var(--line);
   font-size:13px; text-align:right}
 .rubro-total.ok{color:var(--verde)} .rubro-total.mal{color:var(--oro)}
@@ -3054,36 +3076,65 @@ function pantallaCartera(){
             <span class="rubro-v">${fmtK(v[r.id])} <span class="rubro-hoy">hoy ${Math.round(pctActual)}%</span></span>
           </div>
           <div class="rubro-ctrl">
-            <button class="paso" data-r="${r.id}" data-d="-5" ${obj <= 0 ? "disabled" : ""}>−</button>
-            <div class="rubro-barra"><i style="width:${obj}%"></i></div>
-            <span class="rubro-pct">${obj}%</span>
-            <button class="paso" data-r="${r.id}" data-d="5" ${suma >= 100 ? "disabled" : ""}>+</button>
+            <input type="range" class="perilla" min="0" max="100" step="1" value="${obj}"
+                   style="--fill:${obj}%" data-r="${r.id}" aria-label="Porcentaje en ${r.n}">
+            <span class="rubro-pct" data-pct="${r.id}">${obj}%</span>
           </div>
+          <div class="rubro-monto" data-monto="${r.id}">${fmtK(total * obj / 100)}</div>
         </div>`;
       }).join("")}
-      <div class="rubro-total ${suma === 100 ? "ok" : "mal"}">
-        ${suma === 100
-          ? "Repartido: 100% · bajá algo para poder subir otra cosa"
-          : "Te falta repartir " + (100 - suma) + "%"}
-      </div>
+      <div class="rubro-total ok">Todo repartido · al mover una, las otras se acomodan</div>
     </div>
 
     <div class="ops">
-      <button class="btn" id="aplicar" ${suma !== 100 ? "disabled" : ""}>Aplicar y seguir</button>
+      <button class="btn" id="aplicar">Aplicar y seguir</button>
       <button class="btn ghost" id="saltar">Dejar todo como está</button>
     </div>
     <p class="nota">La plata en pesos y en plazo fijo es la que podés usar mañana. El bono y el
       índice pueden valer mucho y no servirte el martes que se rompe algo.</p>
   </div>`;
 
-  $app.querySelectorAll(".paso").forEach(b => {
-    b.onclick = () => {
-      const r = b.dataset.r, d = +b.dataset.d;
-      const s = Object.values(objetivoCartera).reduce((a,x) => a + x, 0);
-      objetivoCartera[r] = clamp((objetivoCartera[r] || 0) + d, 0,
-                                 (objetivoCartera[r] || 0) + (100 - s));
-      pantallaCartera();
-    };
+  /* Mover una perilla reparte lo que queda entre las demás, en proporción a como
+     estaban. Así siempre suma 100 y nunca hay que bajar algo primero para poder
+     subir otra cosa — que era lo molesto de los botones de a 5%.
+     Se actualiza el DOM en el lugar, sin volver a dibujar la pantalla: si se
+     redibujara, el dedo perdería la perilla a mitad del arrastre. */
+  function repartirResto(id, nuevo){
+    objetivoCartera[id] = nuevo;
+    const otros = abiertos.map(r => r.id).filter(k => k !== id);
+    if(!otros.length){ objetivoCartera[id] = 100; return; }
+    const resto = 100 - nuevo;
+    const suma = otros.reduce((a, k) => a + (objetivoCartera[k] || 0), 0);
+    let acum = 0;
+    otros.forEach((k, i) => {
+      const v = i === otros.length - 1
+        ? resto - acum
+        : Math.round(suma > 0 ? (objetivoCartera[k] || 0) / suma * resto : resto / otros.length);
+      objetivoCartera[k] = clamp(v, 0, 100);
+      acum += objetivoCartera[k];
+    });
+  }
+
+  function refrescarCartera(){
+    abiertos.forEach(r => {
+      const pct = objetivoCartera[r.id] || 0;
+      const $p = $app.querySelector(`[data-pct="${r.id}"]`);
+      const $m = $app.querySelector(`[data-monto="${r.id}"]`);
+      const $s = $app.querySelector(`.perilla[data-r="${r.id}"]`);
+      if($p) $p.textContent = pct + "%";
+      if($m) $m.textContent = fmtK(total * pct / 100);
+      if($s){
+        if(+$s.value !== pct) $s.value = pct;
+        $s.style.setProperty("--fill", pct + "%");
+      }
+    });
+  }
+
+  $app.querySelectorAll(".perilla").forEach(sl => {
+    sl.addEventListener("input", () => {
+      repartirResto(sl.dataset.r, +sl.value);
+      refrescarCartera();
+    });
   });
   document.getElementById("saltar").onclick = () => {
     S.ultimaRevision = S.mes; objetivoCartera = null; aprender("horizonte");
