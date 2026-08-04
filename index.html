@@ -907,18 +907,24 @@ function avanzarMes(){
      Baja sola cuando no hay margen y sube sola cuando lo hay, pero despacio:
      lo que de verdad la mueve son las decisiones. Si el desgaste pasivo pesara
      más que lo que elegís, daría lo mismo elegir. */
+  /* --- ánimo ---
+     La vida desgasta siempre, tengas plata o no. Antes el aire alto REGALABA
+     ánimo, y eso rompía la regla principal del juego: acumular salía gratis y
+     no gastar nunca era la jugada óptima. Ahora el saldo de la cuenta no te
+     hace feliz — solo evita que la falta de plata te destruya.
+
+     Lo único que sube el ánimo son las decisiones: viajar, salir, la gente, y
+     las tres cosas de abajo, que son inversiones en uno mismo con un costo
+     mensual concreto. Guardar todo diez años y no vivir nada ahora termina en
+     quiebre, que es exactamente lo que el juego quiere que se sienta. */
   const a = aire();
-  /* La zona de 1 a 3 meses de aire es neutra a propósito: es donde vive medio
-     país y no tiene por qué desgastarte sola. Antes drenaba, y como los primeros
-     tres años transcurren ahí, la partida empezaba con un pozo del que ya no se
-     salía: el final más común era "con plata y cansado" y el ánimo alto casi no
-     existía. Ahora arriba de 3 se recupera de verdad. */
-  animo(a < 0 ? -2.2 : a < 1 ? -1.0 : a < 3 ? 0 : a < 12 ? .55 : .9);
+  animo(a < 0 ? -2.2 : a < 1 ? -1.1 : -.30);
   if(S.deuda > S.sueldo) animo(-.8);
   if(!S.trabajo) animo(-1.8);
   // Lo que elegiste para cuidarte sigue rindiendo, no fue un gasto de un día.
-  if(S.flags.terapia) animo(.3);
-  if(S.flags.pareja)  animo(.2);
+  if(S.flags.terapia) animo(.34);
+  if(S.flags.pareja)  animo(.26);
+  if(S.flags.entrena) animo(.30);
   S.animoSuma += S.animo; S.animoN++;
   S.animoCero = S.animo <= 2 ? S.animoCero + 1 : 0;
 
@@ -1711,8 +1717,12 @@ const EVENTOS = [
         return `<p>Segunda marca, mercado de barrio, mayorista una vez por mes.</p>
         <p>Bajás el gasto fijo un poco. Cuesta tiempo y cuesta ganas, que también son recursos.</p>`; } },
     { txt:"Seguir igual",
-      hacer(){ return `<p>Pagás y salís.</p>
-      <p>La inflación no se siente cuando llega. Se siente tres meses después, en la caja.</p>`; } },
+      hacer(){
+        // No mirar tiene un costo real: el gasto se acomoda hacia arriba solo.
+        S.ratioVida = Math.min(S.ratioVida * 1.012, .93);
+        return `<p>Pagás y salís.</p>
+        <p>La inflación no se siente cuando llega: se siente tres meses después, en la caja. Y
+        mientras no mirás, el nivel de gasto se acomoda solo hacia arriba.</p>`; } },
   ]
 },
 {

@@ -238,15 +238,21 @@ mantener el nivel de vida que tenías. Es lo más difícil de la lista y lo que 
 Nadie te felicita por eso y no se puede contar en ningún asado — la única prueba de que
 funcionó aparece cinco años después.
 
+Y **tener plata no te hace feliz**. Durante un tiempo el ánimo subía solo cuando el aire
+era alto, y eso rompía la regla principal del juego: acumular salía gratis y no gastar nunca
+era la jugada óptima. Ahora el saldo de la cuenta solo evita que la falta de plata te
+destruya; lo único que levanta el ánimo son las decisiones — viajar, la gente, la terapia,
+moverse. Guardar todo diez años y no vivir nada termina en quiebre.
+
 Medido con un jugador que prueba cada opción y se queda con la mejor, contra uno que elige
 al azar:
 
 | | al azar | jugando bien |
 |---|---|---|
-| Llegaste con aire | 4% | 36% |
-| Llegaste parado | 33% | 13% |
-| Llegaste justo | 23% | 39% |
-| Quiebre o tocar fondo | 37% | 12% |
+| Llegaste con aire | 1% | 27% |
+| Llegaste parado | 30% | 18% |
+| Llegaste justo | 22% | 43% |
+| Quiebre o tocar fondo | 41% | 10% |
 
 Jugar bien cambia mucho las cosas y no garantiza nada, que es como tiene que ser.
 
