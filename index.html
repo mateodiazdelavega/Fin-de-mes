@@ -360,8 +360,55 @@ function nuevaPartida(origen){
        acompañado o no. Ver PERSONAJES. */
     gente: { pedro:{ etapa:"", visto:-99 }, vale:{ etapa:"", visto:-99 },
              bautista:{ etapa:"", visto:-99 } },
+    /* El guion de cada vida se sortea al empezar: en qué mes cae cada hito
+       dentro de su ventana, y cuáles ocurren y cuáles no. Antes todos los hitos
+       disparaban en el mes exacto y sin excepción, así que dos partidas
+       compartían el 69% de las escenas y los primeros cuatro años eran
+       idénticos. Ahora cada vida tiene su propia forma. */
+    guion: {},
   };
+  sortearGuion();
   return S;
+}
+
+/* Escenas que tienen que estar disponibles en toda vida: las que sostienen el
+   ritmo del juego (quedarte sin laburo, el bajón, las elecciones) y los arcos de
+   los personajes, que se romperían si faltara un capítulo del medio. */
+const SIEMPRE = new Set(["bajon","volver-a-laburar","eleccion","pre-eleccion","emergencia"]);
+
+/* Los arcos se sortean enteros, no escena por escena: o esa persona está en tu
+   vida o no está. Si Pedro no aparece nunca, esa partida se siente distinta de
+   verdad — y si apareciera solo el capítulo tres, se sentiría rota. */
+const ARCOS = {
+  pedro:    { escenas:["pedro-1","pedro-2","pedro-3","pedro-4"], prob:.78 },
+  vale:     { escenas:["vale-1","vale-2","vale-3"],              prob:.78 },
+  bautista: { escenas:["prestamo-amigo","bautista-2"],           prob:.78 },
+};
+
+/* Decide, una vez por partida, cuándo cae cada hito, cuáles ocurren, y qué
+   parte del catálogo de eventos existe en esta vida.
+
+   Sin ese último sorteo dos partidas compartían el 66% de las escenas: con 59
+   escenas y unas 60 pantallas por partida, veías el catálogo entero siempre. No
+   es que faltara contenido — es que no había nada que quedara afuera. */
+function sortearGuion(){
+  S.guion = {};
+  HITOS.forEach(h => {
+    const v = h.ventana || 0;
+    S.guion[h.id] = {
+      mes: Math.max(1, h.mes + (v ? rndI(-v, v) : 0)),
+      ocurre: h.prob == null || Math.random() < h.prob,
+    };
+  });
+  S.guion.eventos = {};
+  EVENTOS.forEach(e => {
+    S.guion.eventos[e.id] = SIEMPRE.has(e.id) || Math.random() < .68;
+  });
+  // Y encima de eso, quién aparece en tu vida y quién no.
+  Object.values(ARCOS).forEach(a => {
+    const hay = Math.random() < a.prob;
+    a.escenas.forEach(id => S.guion.eventos[id] = hay);
+  });
 }
 
 /* ==========================================================================
@@ -1042,7 +1089,7 @@ const HITOS = [
   ]
 },
 {
-  id:"tarjeta", mes:3,
+  id:"tarjeta", mes:4, ventana:3, prob:.85,
   texto: () => `<p>Te llaman del banco. "Te tenemos preaprobada una tarjeta de crédito con
   un límite de ${fmt(S.sueldo*1.5)}."</p>
   <p>La chica lo dice como si te estuviera regalando algo.</p>`,
@@ -1068,7 +1115,7 @@ const HITOS = [
   ]
 },
 {
-  id:"primer-dolar", mes:8,
+  id:"primer-dolar", mes:9, ventana:5,
   texto: () => `<p>Sobremesa. Alguien tira el tema y no se habla de otra cosa: el dólar está
   a ${fmt(S.dolar)}.</p>
   <p>Uno jura que se va a las nubes. Otro jura que está caro y va a bajar. Los dos hablan
@@ -1102,7 +1149,7 @@ const HITOS = [
   ]
 },
 {
-  id:"aumento-corto", mes:13,
+  id:"aumento-corto", mes:14, ventana:5, prob:.8,
   texto: () => `<p>Te llama tu jefe. Aumento del ${pct(rnd(.09,.14))} "por el esfuerzo del año".</p>
   <p>Hacés la cuenta mientras él habla. En el año que pasó, todo subió bastante más que eso.</p>`,
   opciones: [
@@ -1131,7 +1178,7 @@ const HITOS = [
   ]
 },
 {
-  id:"laburo-nuevo", mes:20, cond: () => !!S.trabajo,
+  id:"laburo-nuevo", mes:22, ventana:9, prob:.75, cond: () => !!S.trabajo,
   texto: () => `<p>Te escribe una reclutadora. Otra empresa, más grande, más quilombo,
   ${pct(rnd(.28,.45))} más de sueldo.</p>
   <p>Donde estás te tratan bien y ya sabés cómo funciona todo.</p>`,
@@ -1161,7 +1208,7 @@ const HITOS = [
   ]
 },
 {
-  id:"viaje", mes:29,
+  id:"viaje", mes:30, ventana:11, prob:.8,
   texto: () => `<p>El grupo se está organizando. Diez días, en enero, todos juntos.
   Sale como ${fmt(S.sueldo*1.8)} por cabeza.</p>
   <p>Vos hacés la cuenta de lo que tenés y de lo que se te viene.</p>`,
@@ -1190,7 +1237,7 @@ const HITOS = [
   ]
 },
 {
-  id:"despido", mes:40,
+  id:"despido", mes:42, ventana:14, prob:.7,
   texto: () => `<p>Reunión de quince minutos un miércoles. Reestructuración. No es personal,
   dicen, como si eso ayudara.</p>
   <p>Tenés ${aire() > 0 ? aire().toFixed(1).replace(".",",") : "0"} meses de aire con lo que hay guardado.</p>`,
@@ -1223,7 +1270,7 @@ const HITOS = [
   ]
 },
 {
-  id:"pareja", mes:52,
+  id:"pareja", mes:54, ventana:16, prob:.85,
   texto: () => `<p>Hace rato que están. Aparece la conversación de vivir juntos y con ella
   la otra, la que nadie quiere tener: cómo se maneja la plata.</p>`,
   opciones: [
@@ -1249,7 +1296,8 @@ const HITOS = [
   ]
 },
 {
-  id:"oportunidad", mes:76,
+  id:"oportunidad", mes:76, ventana:18, prob:.7,
+  cond: () => S.guion.eventos["prestamo-amigo"] !== false,
   texto: () => `<p>Bautista te ofrece entrar en algo suyo. Necesita ${fmt(S.sueldo*4)} y te da una
   parte.</p>
   <p>Te muestra números en una servilleta. Los números cierran, como cierran siempre los
@@ -1291,7 +1339,7 @@ const HITOS = [
   ]
 },
 {
-  id:"hijo", mes:64, cond: () => !!S.flags.pareja,
+  id:"hijo", mes:66, ventana:14, cond: () => !!S.flags.pareja,
   texto: () => `<p>La conversación aparece una noche cualquiera, lavando los platos.</p>
   <p>Los dos saben que nunca va a haber un momento en que los números estén listos.</p>`,
   opciones: [
@@ -1317,7 +1365,7 @@ const HITOS = [
   ]
 },
 {
-  id:"depto", mes:88,
+  id:"depto", mes:88, ventana:16, prob:.75,
   texto: () => `<p>Un dos ambientes. Piden ${usd(58000)}, y podrías poner
   ${usd(Math.max(0, patrimonio()/S.dolar)).replace("US$","")} dólares de anticipo.</p>
   <p>Tu vieja pregunta cada vez que te ve cuándo vas a dejar de tirar la plata en el alquiler.</p>`,
@@ -1350,7 +1398,7 @@ const HITOS = [
   /* El origen "casa" tenía una ventaja que no vencía nunca: la escena del
      aumento de alquiler está bloqueada para él, así que llegaba al año diez sin
      haber pagado un peso de techo. Este hito cierra eso. */
-  id:"irse-de-casa", mes:42, cond: () => S.origen === "casa" && !S.flags.seFue,
+  id:"irse-de-casa", mes:44, ventana:10, cond: () => S.origen === "casa" && !S.flags.seFue,
   texto: () => `<p>Tenés veinticinco años y seguís durmiendo en el mismo cuarto que a los
   doce. Tu vieja no dice nada y por eso mismo lo escuchás todos los días.</p>
   <p>Un dos ambientes en el barrio sale ${fmt(S.gastos*.55)} por mes, más depósito, más
@@ -1387,7 +1435,7 @@ const HITOS = [
   ]
 },
 {
-  id:"padres", mes:104,
+  id:"padres", mes:100, ventana:14, prob:.8,
   texto: () => `<p>A tu viejo lo internan tres días. Sale bien, pero algo cambió.</p>
   <p>Hay que empezar a pensar cosas que nadie quiere pensar.</p>`,
   opciones: [
@@ -2840,16 +2888,20 @@ function escenaDisponible(){
     const visto = S.usados[u.id];
     if(visto == null || S.mes - visto >= u.espera) return EVENTOS.find(e => e.id === u.id);
   }
-  // 1) hitos, en orden
+  /* 1) hitos, en el orden que le tocó a esta vida. El mes viene del guion
+     sorteado al empezar, no del que está escrito en la escena. */
   for(const h of HITOS){
     if(S.usados[h.id] != null) continue;
-    if(S.mes < h.mes) continue;
+    const g = S.guion[h.id];
+    if(!g || !g.ocurre) continue;
+    if(S.mes < g.mes) continue;
     if(h.cond && !h.cond()) continue;
     return h;
   }
   // 2) eventos al azar
   if(Math.random() < .55){
     const elegibles = EVENTOS.filter(e => {
+      if(!S.guion.eventos[e.id]) return false;   // no todo le pasa a todo el mundo
       const visto = S.usados[e.id];
       if(visto != null && !(e.repetible && S.mes - visto >= ESPERA_REPETIBLE)) return false;
       return !e.cond || e.cond();

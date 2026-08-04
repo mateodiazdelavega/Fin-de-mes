@@ -143,6 +143,25 @@ Ahí está el motivo para jugar de nuevo.
 Los **10 logros** están puestos en lo difícil de sostener diez años: no deber nunca, pasar
 una crisis sin endeudarte, no vender los dólares en el pico, terminar con el ánimo alto.
 
+## Cada vida tiene su guion
+
+Al empezar una partida se sortean tres cosas: **en qué mes cae cada hito** dentro de su
+ventana, **cuáles ocurren** y cuáles no, y **qué parte del catálogo de eventos existe** en
+esa vida. Los personajes se sortean enteros: o Pedro está en tu vida o no está, porque si
+apareciera solo el capítulo tres el arco se sentiría roto.
+
+Antes los hitos disparaban en el mes exacto y sin excepción —primer sueldo mes 1, tarjeta
+mes 3, el primer aumento corto mes 13— así que los primeros cuatro años eran idénticos
+partida tras partida.
+
+```
+parecido entre dos partidas         69%  ->  48%
+escenas que salen en más del 75%     37  ->   8
+```
+
+El problema de fondo no era que faltara contenido: con 59 escenas y unas 57 pantallas por
+partida, veías el catálogo entero siempre. No había nada que quedara afuera.
+
 ## Variantes de texto
 
 Que el súper, la heladera o un casamiento vuelvan dos o tres veces en diez años es
