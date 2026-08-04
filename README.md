@@ -139,6 +139,26 @@ Ahí está el motivo para jugar de nuevo.
 Los **10 logros** están puestos en lo difícil de sostener diez años: no deber nunca, pasar
 una crisis sin endeudarte, no vender los dólares en el pico, terminar con el ánimo alto.
 
+## Variantes de texto
+
+Que el súper, la heladera o un casamiento vuelvan dos o tres veces en diez años es
+correcto — así es la vida. Lo que rompe la inmersión es leer **el mismo párrafo** otra vez.
+
+Por eso `texto` puede ser una lista en vez de una función: se elige la versión según cuántas
+veces viste esa escena. Veintitrés escenas tienen tres versiones cada una, y muchas
+aprovechan para saber que es la segunda vez ("otra vez", "la tercera elección de tu vida
+adulta"). Así la repetición deja de ser un bache y pasa a ser continuidad.
+
+El bajón anímico además **escala**: la primera vez es cansancio, la segunda es la cuenta de
+todos los meses que venís empujando, la tercera ya no es un bajón sino cómo estás.
+
+Medido sobre 400 partidas, pantallas que muestran texto ya leído:
+
+```
+antes de las variantes   26 de 66   (39%)
+después                 1,5 de 62   ( 2%)
+```
+
 ## La gente que vuelve
 
 Antes cada escena traía "un amigo" distinto y las repeticiones se sentían repeticiones.

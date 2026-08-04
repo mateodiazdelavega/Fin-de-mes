@@ -293,7 +293,8 @@ function nuevaPartida(origen){
     regimen: pick(["estable","alta","volatil"]), mesesRegimen: rndI(14,30),
     inflMes: .03,
     flags: {},                        // hitos narrativos alcanzados
-    usados: {},                       // escenas ya vistas
+    usados: {},                       // escenas ya vistas (mes de la última vez)
+    vistas: {},                       // cuántas veces viste cada una, para elegir variante
     // acumuladores del mes en curso
     inMes: 0, egMes: 0, avisos: [], detalle: [],
     // carteras sombra: mismo flujo de caja, tres estrategias distintas
@@ -420,6 +421,17 @@ function rendimientoAnual(){
     bono:   real(S.idxBono / f.idxBono * (S.dolar / f.dolar)),
     indice: real(S.indicePrecio / f.indice * (S.dolar / f.dolar)),
   };
+}
+
+/* Una escena repetible puede traer varias versiones del texto. Que el súper o la
+   heladera vuelvan dos veces en diez años es correcto — así es la vida. Lo que
+   rompe todo es leer el mismo párrafo de nuevo. Con variantes, la segunda vez
+   puede además saber que es la segunda vez, y ahí la repetición deja de ser un
+   bache y pasa a ser continuidad. */
+function textoDe(esc){
+  const n = Math.max(0, (S.vistas[esc.id] || 1) - 1);
+  const t = esc.texto;
+  return Array.isArray(t) ? t[Math.min(n, t.length - 1)]() : t();
 }
 
 /* ---------- lecturas derivadas ---------- */
@@ -1272,8 +1284,16 @@ const HITOS = [
 const EVENTOS = [
 {
   id:"heladera", peso:1, repetible:true,
-  texto: () => `<p>La heladera hace un ruido raro tres días y después no hace ningún ruido,
-  que es peor.</p><p>Una nueva sale ${fmt(S.gastos*1.4)}.</p>`,
+  texto: [
+    () => `<p>La heladera hace un ruido raro tres días y después no hace ningún ruido, que es
+    peor.</p><p>Una nueva sale ${fmt(S.gastos*1.4)}.</p>`,
+    () => `<p>El lavarropas se planta con la ropa adentro. El service viene, la mira, y te dice
+    que no conviene arreglarla.</p>
+    <p>Uno nuevo sale ${fmt(S.gastos*1.4)}. Las cosas se rompen todas el mismo año, siempre.</p>`,
+    () => `<p>Se corta el agua caliente un martes de julio. El termotanque tiene doce años y el
+    gasista te lo dice con cara de "y qué querés".</p>
+    <p>${fmt(S.gastos*1.4)}, y no es una compra que se pueda postergar en invierno.</p>`,
+  ],
   opciones: [
     { txt:"Comprarla en doce cuotas sin interés",
       hacer(){ aprender("cuotasInfl"); enCuotas(S.gastos*1.4, 12, "Heladera");
@@ -1293,8 +1313,15 @@ const EVENTOS = [
 },
 {
   id:"alquiler", repetible:true, peso:1, cond: () => S.origen !== "casa",
-  texto: () => `<p>Mensaje del dueño. Actualización del alquiler: ${pct(rnd(.22,.48))} más
-  a partir del mes que viene.</p>`,
+  texto: [
+    () => `<p>Mensaje del dueño. Actualización del alquiler: ${pct(rnd(.22,.48))} más a partir
+    del mes que viene.</p>`,
+    () => `<p>Se vence el contrato y hay que renovar. La inmobiliaria manda el número nuevo por
+    mail, sin asunto y sin saludo.</p>`,
+    () => `<p>El dueño vende el departamento. El comprador quiere entrar a vivir, así que tenés
+    tres meses.</p><p>Buscar otra cosa hoy significa pagar bastante más que lo que venías
+    pagando.</p>`,
+  ],
   opciones: [
     { txt:"Aceptar y seguir ahí",
       hacer(){ S.gastos *= rnd(1.12,1.22); animo(-3);
@@ -1453,8 +1480,15 @@ const EVENTOS = [
 },
 {
   id:"casamiento", repetible:true, peso:1,
-  texto: () => `<p>Se casa un amigo de toda la vida. Hay que poner para el regalo,
-  y hay que ir vestido de algo.</p><p>Entre una cosa y la otra, ${fmt(S.sueldo*.35)}.</p>`,
+  texto: [
+    () => `<p>Se casa un amigo de toda la vida. Hay que poner para el regalo, y hay que ir
+    vestido de algo.</p><p>Entre una cosa y la otra, ${fmt(S.sueldo*.35)}.</p>`,
+    () => `<p>Cumple cuarenta un tío y arman una fiesta en un salón. Regalo, ropa, y el taxi de
+    vuelta a las cuatro de la mañana.</p><p>${fmt(S.sueldo*.35)}.</p>`,
+    () => `<p>Nace el hijo de una pareja amiga. Baby shower, regalo, y después el bautismo.</p>
+    <p>${fmt(S.sueldo*.35)} entre todo. A esta altura de la vida los eventos son un rubro
+    fijo del presupuesto.</p>`,
+  ],
   opciones: [
     { txt:"Poner sin hacer drama",
       hacer(){ gastar(S.sueldo*.35,"Casamiento"); animo(6);
@@ -1469,8 +1503,15 @@ const EVENTOS = [
 },
 {
   id:"cuotas-tv", repetible:true, peso:1, cond: () => S.flags.tarjeta,
-  texto: () => `<p>Doce cuotas sin interés en un televisor de ${fmt(S.sueldo*.9)}.
-  El que tenés anda perfecto.</p>`,
+  texto: [
+    () => `<p>Doce cuotas sin interés en un televisor de ${fmt(S.sueldo*.9)}. El que tenés anda
+    perfecto.</p>`,
+    () => `<p>Liquidación de fin de temporada: una notebook a ${fmt(S.sueldo*.9)} en doce cuotas
+    sin interés. La tuya anda, aunque tarda en arrancar.</p>`,
+    () => `<p>Sale una promo de doce cuotas para renovar el colchón y el sommier.
+    ${fmt(S.sueldo*.9)}.</p><p>Este lo necesitás de verdad, y es la primera vez en años que
+    podés decir eso de una compra en cuotas.</p>`,
+  ],
   opciones: [
     { txt:"Comprarlo. Con inflación, la cuota se licúa",
       hacer(){ enCuotas(S.sueldo*.9, 12, "Televisor"); animo(5);
@@ -1512,7 +1553,7 @@ const EVENTOS = [
   opciones: [
     { txt:"Escuchar qué necesita",
       hacer(){ avanzaArco("bautista","arranca");
-        if(Math.random() < .55){
+        if(Math.random() < .48){
           cobrar(S.sueldo*.6, "Bautista te devolvió"); animo(6);
           return `<p>Saca un sobre y te devuelve todo, con seis meses de atraso.</p>
           <p>—Perdón la demora —dice—. No te quería escribir hasta poder pagarte.</p>
@@ -1539,7 +1580,13 @@ const EVENTOS = [
 },
 {
   id:"bono", repetible:true, peso:1, cond: () => !!S.trabajo,
-  texto: () => `<p>Bono por objetivos: ${fmt(S.sueldo*1.2)} que no esperabas.</p>`,
+  texto: [
+    () => `<p>Bono por objetivos: ${fmt(S.sueldo*1.2)} que no esperabas.</p>`,
+    () => `<p>Cierran un año bueno y reparten. Te tocan ${fmt(S.sueldo*1.2)}.</p>
+    <p>La mitad de la oficina ya lo tiene gastado desde antes de que caiga.</p>`,
+    () => `<p>Bono de retención: te pagan ${fmt(S.sueldo*1.2)} para que no te vayas.</p>
+    <p>Lo cual te dice algo interesante sobre cuánto valés y cuánto te vienen pagando.</p>`,
+  ],
   opciones: [
     { txt:"A dólares, íntegro",
       hacer(){ cobrar(S.sueldo*1.2,"Bono"); const c = comprarUsd(S.sueldo*1.2);
@@ -1562,8 +1609,15 @@ const EVENTOS = [
 },
 {
   id:"salud", repetible:true, peso:1,
-  texto: () => `<p>Una muela. Duele desde el jueves y ya no se puede seguir postergando.</p>
-  <p>El tratamiento sale ${fmt(S.gastos*.8)}.</p>`,
+  texto: [
+    () => `<p>Una muela. Duele desde el jueves y ya no se puede seguir postergando.</p>
+    <p>El tratamiento sale ${fmt(S.gastos*.8)}.</p>`,
+    () => `<p>Los estudios de rutina que venías pateando desde hace dos años. La obra social
+    cubre una parte y el resto sale ${fmt(S.gastos*.8)}.</p>`,
+    () => `<p>Te agarra una contractura que no se va con nada. El traumatólogo te manda
+    kinesiología: doce sesiones, ${fmt(S.gastos*.8)}.</p>
+    <p>—Es de estar mucho tiempo tenso —te dice, sin saber nada de tu vida.</p>`,
+  ],
   opciones: [
     { txt:"Hacerlo ya",
       hacer(){ gastar(S.gastos*.8,"Dentista"); animo(2);
@@ -1577,8 +1631,14 @@ const EVENTOS = [
 },
 {
   id:"freelance", repetible:true, peso:1, cond: () => !!S.trabajo,
-  texto: () => `<p>Te ofrecen un laburo por afuera, pagado en dólares. Son tres meses de
-  fines de semana ocupados.</p>`,
+  texto: [
+    () => `<p>Te ofrecen un laburo por afuera, pagado en dólares. Son tres meses de fines de
+    semana ocupados.</p>`,
+    () => `<p>Vuelve a aparecer changa por afuera, en dólares. Ya sabés exactamente cuánto
+    cuesta: tres meses sin sábados.</p>`,
+    () => `<p>Un cliente del exterior te escribe directo, sin intermediarios. Paga en dólares y
+    quiere empezar ya.</p>`,
+  ],
   opciones: [
     { txt:"Agarrarlo",
       hacer(){ S.usd += rnd(600,1400); animo(-6); S.flags.dolarizado = true;
@@ -1592,8 +1652,14 @@ const EVENTOS = [
 },
 {
   id:"super", repetible:true, peso:2,
-  texto: () => `<p>Caja del súper. El total te sorprende y no de la buena manera.
-  Compraste lo mismo de siempre.</p>`,
+  texto: [
+    () => `<p>Caja del súper. El total te sorprende y no de la buena manera. Compraste lo mismo
+    de siempre.</p>`,
+    () => `<p>Esta vez llevás la cuenta mentalmente mientras cargás el changuito, y aun así en la
+    caja el número es mayor que el que tenías en la cabeza.</p>`,
+    () => `<p>Te acordás de lo que salía el kilo de asado cuando empezaste a trabajar y hacés el
+    chiste en voz alta. La cajera no se ríe: lo escuchó catorce veces hoy.</p>`,
+  ],
   opciones: [
     { txt:"Empezar a comprar distinto",
       hacer(){ S.gastos = Math.max(S.gastos * .95, S.gastosPiso); animo(-2);
@@ -1606,7 +1672,13 @@ const EVENTOS = [
 },
 {
   id:"celular", repetible:true, peso:1,
-  texto: () => `<p>Se te cae el celular y esta vez no zafó.</p>`,
+  texto: [
+    () => `<p>Se te cae el celular y esta vez no zafó.</p>`,
+    () => `<p>La batería del celular no llega a la tarde. Te pasás el día buscando enchufes como
+    si fuera un trabajo.</p>`,
+    () => `<p>Dejó de actualizarse, la cámara salió de escena y las aplicaciones del banco ya no
+    abren. Todavía anda, técnicamente.</p>`,
+  ],
   opciones: [
     { txt:"Uno nuevo, en cuotas",
       hacer(){ enCuotas(S.sueldo*.8, 12, "Celular"); return `<p>Doce cuotas más en la lista.</p>
@@ -1705,9 +1777,17 @@ const EVENTOS = [
 },
 {
   id:"plazo-vs-dolar", repetible:true, peso:1, cond: () => S.pesos > S.gastos*2,
-  texto: () => `<p>Tenés ${fmt(S.pesos)} parados en la cuenta. El dólar está a ${fmt(S.dolar)}
-  y el plazo fijo paga ${pct(tasaPF())} al mes.</p>
-  <p>Los pesos quietos pierden todos los días. Eso no es opinión.</p>`,
+  texto: [
+    () => `<p>Tenés ${fmt(S.pesos)} parados en la cuenta. El dólar está a ${fmt(S.dolar)} y el
+    plazo fijo paga ${pct(tasaPF())} al mes.</p>
+    <p>Los pesos quietos pierden todos los días. Eso no es opinión.</p>`,
+    () => `<p>Otra vez se te juntaron ${fmt(S.pesos)} en la caja de ahorro sin decidir nada.</p>
+    <p>Pasa siempre: no es una decisión consciente de dejarlos ahí, es que decidir cansa y el
+    default es no hacer nada.</p>`,
+    () => `<p>${fmt(S.pesos)} quietos. A esta altura ya sabés perfectamente lo que les pasa
+    mes a mes.</p><p>Saberlo y hacer algo son dos cosas distintas, y la diferencia entre las
+    dos es todo lo que separa a la gente que termina bien de la que no.</p>`,
+  ],
   opciones: [
     { txt:"Plazo fijo",
       hacer(){ const m = ponerPlazo(S.pesos*.8);
@@ -1729,8 +1809,15 @@ const EVENTOS = [
 },
 {
   id:"tarifas", repetible:true, peso:1,
-  texto: () => `<p>Llegan las boletas. Luz, gas, expensas: todas más caras de lo que esperabas,
-  todas el mismo mes.</p>`,
+  texto: [
+    () => `<p>Llegan las boletas. Luz, gas, expensas: todas más caras de lo que esperabas, todas
+    el mismo mes.</p>`,
+    () => `<p>Sacan el aumento de las expensas en la reunión de consorcio. Va a haber obra en el
+    palier y hay que poner.</p>
+    <p>Votaron los que estaban. Vos no fuiste.</p>`,
+    () => `<p>Vuelve la boleta de gas de invierno, esa que todos los años te olvidás de que
+    existe hasta que llega.</p>`,
+  ],
   opciones: [
     { txt:"Pagar y reacomodar el mes",
       hacer(){ gastar(S.gastos*.35,"Boletas"); S.gastos *= 1.03;
@@ -1749,9 +1836,17 @@ const EVENTOS = [
      nada. El sueldo que conseguís no es el viejo actualizado: es lo que paga el
      mercado hoy, que es una diferencia que se siente. */
   id:"volver-a-laburar", repetible:true, peso:1, cond: () => !S.trabajo && S.sinTrabajo >= 2,
-  texto: () => `<p>${S.sinTrabajo} ${S.sinTrabajo === 1 ? "mes" : "meses"} sin que entre nada.
-  Mandaste currículums y fuiste a algunas entrevistas.</p>
-  <p>Aparecen dos cosas al mismo tiempo.</p>`,
+  texto: [
+    () => `<p>${S.sinTrabajo} ${S.sinTrabajo === 1 ? "mes" : "meses"} sin que entre nada.
+    Mandaste currículums y fuiste a algunas entrevistas.</p>
+    <p>Aparecen dos cosas al mismo tiempo.</p>`,
+    () => `<p>Otra vez del otro lado del mostrador. ${S.sinTrabajo} meses, y esta vez ya sabés
+    cómo es: las entrevistas que no vuelven a llamar, los procesos que se caen sin aviso.</p>
+    <p>Igual aparecen dos cosas.</p>`,
+    () => `<p>${S.sinTrabajo} meses buscando. A esta altura tenés la conversación de la
+    entrevista tan ensayada que te sale sin pensar, y eso también se nota.</p>
+    <p>Hay dos posibilidades sobre la mesa.</p>`,
+  ],
   opciones: [
     { txt:"Un puesto en relación de dependencia",
       sub:"Estable, sueldo de mercado, empezás el lunes.",
@@ -1858,8 +1953,14 @@ const EVENTOS = [
 },
 {
   id:"viejos", repetible:true, peso:1, cond: () => S.mes > 45,
-  texto: () => `<p>Susana, tu vieja, te cuenta como al pasar que este mes no le cierra.</p>
-  <p>No te pide nada. Justamente por eso.</p>`,
+  texto: [
+    () => `<p>Susana, tu vieja, te cuenta como al pasar que este mes no le cierra.</p>
+    <p>No te pide nada. Justamente por eso.</p>`,
+    () => `<p>Vas a comer a lo de tu vieja y la heladera está más vacía de lo que debería.</p>
+    <p>Ella hace un chiste sobre la dieta y cambia de tema rápido.</p>`,
+    () => `<p>A Susana le aumentan la medicación y la obra social le cubre menos que antes.</p>
+    <p>Te lo cuenta como una anécdota sobre la burocracia, no como un problema de plata.</p>`,
+  ],
   opciones: [
     { txt:"Ayudarla todos los meses",
       hacer(){ S.gastos += S.sueldo*.12; animo(7); S.flags.ayudaViejos = true;
@@ -1879,8 +1980,14 @@ const EVENTOS = [
 },
 {
   id:"curso", repetible:true, peso:1, cond: () => !!S.trabajo,
-  texto: () => `<p>Un curso de seis meses que te abriría puertas. Sale ${fmt(S.sueldo*1.5)}
-  y te come las noches.</p>`,
+  texto: [
+    () => `<p>Un curso de seis meses que te abriría puertas. Sale ${fmt(S.sueldo*1.5)} y te come
+    las noches.</p>`,
+    () => `<p>Sale una certificación que en los avisos de trabajo aparece siempre como
+    "deseable". ${fmt(S.sueldo*1.5)} y un examen final.</p>`,
+    () => `<p>Un posgrado corto, de esos que sirven más por la gente que conocés que por lo que
+    te enseñan. ${fmt(S.sueldo*1.5)}.</p>`,
+  ],
   opciones: [
     { txt:"Hacerlo",
       hacer(){ aprender("capitalHum"); lograr("estudioso"); gastar(S.sueldo*1.5,"Curso"); S.sueldo *= rnd(1.06,1.20); animo(-4);
@@ -1900,8 +2007,15 @@ const EVENTOS = [
 },
 {
   id:"mes-flojo", repetible:true, peso:2, cond: () => S.flags.freelance && !!S.trabajo,
-  texto: () => `<p>Mes flojo. Un cliente pateó el pago y otro directamente desapareció.</p>
-  <p>Entra menos de la mitad de lo normal.</p>`,
+  texto: [
+    () => `<p>Mes flojo. Un cliente pateó el pago y otro directamente desapareció.</p>
+    <p>Entra menos de la mitad de lo normal.</p>`,
+    () => `<p>Enero. Nadie contesta mails, nadie aprueba presupuestos, nadie paga facturas.</p>
+    <p>Sabías que venía y no por eso duele menos.</p>`,
+    () => `<p>Se cae el cliente más grande que tenías: reestructuran y cortan proveedores.</p>
+    <p>Era casi la mitad de lo que facturabas. Tener un solo cliente grande es cómodo hasta el
+    día que deja de serlo.</p>`,
+  ],
   opciones: [
     { txt:"Usar lo ahorrado y seguir",
       hacer(){ aprender("fondo"); gastar(S.gastos*.5,"Bache de ingresos");
@@ -1968,9 +2082,19 @@ const EVENTOS = [
      ánimo se va al piso, y siempre ofrece una salida — cara, pero salida. Sin
      esto el juego te fundía por dentro sin avisar, que es injusto y no enseña. */
   id:"bajon", repetible:true, peso:1, cond: () => S.animo < 22,
-  texto: () => `<p>Hace semanas que arrancás cansado. Te cuesta contestar mensajes.
-  El domingo a la noche te agarra una cosa en el pecho que ya conocés.</p>
-  <p>${S.deuda > 0 ? "Y está la deuda, que no se calla nunca." : "No es un problema puntual. Es todo junto."}</p>`,
+  texto: [
+    () => `<p>Hace semanas que arrancás cansado. Te cuesta contestar mensajes. El domingo a la
+    noche te agarra una cosa en el pecho que ya conocés.</p>
+    <p>${S.deuda > 0 ? "Y está la deuda, que no se calla nunca." : "No es un problema puntual. Es todo junto."}</p>`,
+    () => `<p>Otra vez. Lo reconocés más rápido que la primera, y eso no lo hace más
+    llevadero.</p>
+    <p>Esta vez lo que te agota no es una cosa puntual: es la cuenta de todos los meses que
+    viniste empujando ${Math.floor(S.mes/12)} años seguidos.</p>`,
+    () => `<p>Ya no es un bajón. Es cómo estás.</p>
+    <p>Hace rato que venís funcionando con lo mínimo, resolviendo lo urgente y postergando
+    todo lo demás. ${S.flags.terapia ? "Hasta en terapia te lo dijeron con todas las letras."
+    : "Nadie te lo dijo todavía porque desde afuera parecés bien."}</p>`,
+  ],
   opciones: [
     { txt:"Parar. Unos días afuera, como sea",
       sub:"Cuesta plata que no te sobra.",
@@ -2000,11 +2124,19 @@ const EVENTOS = [
 {
   id:"pre-eleccion", repetible:true, peso:1,
   cond: () => S.aEleccion <= 4 && S.aEleccion > 0 && S.mes > 8,
-  texto: () => `<p>Faltan ${S.aEleccion} ${S.aEleccion === 1 ? "mes" : "meses"} para la elección.
-  Gobierna ${S.gobierno === "ajuste" ? "el sector del ajuste" : "el sector del gasto"} y el país
-  está partido al medio.</p>
-  <p>El bono argentino cotiza a ${Math.round(S.bonoPrecio)} centavos por cada dólar de deuda.
-  Todos tienen un pronóstico y ninguno tiene idea.</p>`,
+  texto: [
+    () => `<p>Faltan ${S.aEleccion} ${S.aEleccion === 1 ? "mes" : "meses"} para la elección.
+    Gobierna ${S.gobierno === "ajuste" ? "el sector del ajuste" : "el sector del gasto"} y el país
+    está partido al medio.</p>
+    <p>El bono argentino cotiza a ${Math.round(S.bonoPrecio)} centavos por cada dólar de deuda.
+    Todos tienen un pronóstico y ninguno tiene idea.</p>`,
+    () => `<p>Otra elección. Ya sabés cómo es esto: el bono a ${Math.round(S.bonoPrecio)}, el
+    grupo de la familia insoportable, y cada uno explicando por qué esta vez sí es distinto.</p>
+    <p>Lo único que cambió desde la anterior sos vos, que ahora tenés más para perder.</p>`,
+    () => `<p>La tercera elección de tu vida adulta. El bono a ${Math.round(S.bonoPrecio)}.</p>
+    <p>A esta altura ya viste el ciclo completo dos veces: el miedo antes, el sacudón después,
+    y a los seis meses todo el mundo hablando de otra cosa.</p>`,
+  ],
   opciones: [
     { txt:"Comprar bonos ahora que están por el piso",
       sub:"Si el mercado se entusiasma, volás. Si no, te quedás con papeles.",
@@ -2041,7 +2173,8 @@ const EVENTOS = [
 },
 {
   id:"eleccion", repetible:true, peso:1, cond: () => !!S.eleccionPendiente,
-  texto: () => {
+  texto: [
+    () => {
     const e = S.eleccionPendiente;
     return `<p>Domingo a la noche. ${e.cambia
       ? "Gana la oposición: a partir de diciembre gobierna " + (e.gobierno === "ajuste" ? "el sector del ajuste" : "el sector del gasto") + "."
@@ -2050,7 +2183,26 @@ const EVENTOS = [
     ${Math.round(e.ahora)}. ${e.subioBono
       ? "Los que compraron baratos festejan y explican por qué era obvio."
       : "Los que compraron baratos se quedan callados y explican que es a largo plazo."}</p>`;
-  },
+    },
+    () => {
+      const e = S.eleccionPendiente;
+      return `<p>Segunda elección, mismo domingo eterno. ${e.cambia
+        ? "Gana la oposición otra vez."
+        : "El oficialismo se queda."} Gobierna ${e.gobierno === "ajuste"
+        ? "el sector del ajuste" : "el sector del gasto"}.</p>
+      <p>El bono ${e.subioBono ? "salta" : "se cae"} de ${Math.round(e.antes)} a
+      ${Math.round(e.ahora)}. Los mismos que la vez pasada explicaban por qué era obvio hoy
+      explican por qué era obvio lo contrario.</p>`;
+    },
+    () => {
+      const e = S.eleccionPendiente;
+      return `<p>Tercera vez. Ya sabés cómo sigue: dos semanas de euforia o de velorio, y
+      después la vida.</p>
+      <p>${e.cambia ? "Cambia el gobierno" : "Sigue el mismo"}, el bono pasa de
+      ${Math.round(e.antes)} a ${Math.round(e.ahora)}, y en marzo nadie se acuerda del número
+      exacto.</p>`;
+    },
+  ],
   opciones: [
     { txt:"Tomar ganancia o cortar la pérdida",
       sub:"Vender los bonos y volver a lo conocido.",
@@ -2079,8 +2231,15 @@ const EVENTOS = [
 },
 {
   id:"robo", repetible:true, peso:1, cond: () => S.mes > 10,
-  texto: () => `<p>Dos en una moto, a media cuadra de tu casa. Te llevan el celular y la
-  mochila.</p><p>No te lastimaron. Estás temblando igual.</p>`,
+  texto: [
+    () => `<p>Dos en una moto, a media cuadra de tu casa. Te llevan el celular y la mochila.</p>
+    <p>No te lastimaron. Estás temblando igual.</p>`,
+    () => `<p>Entran al departamento mientras no estabas. Se llevaron lo que se llevan siempre:
+    la notebook, algo de plata, y la sensación de que tu casa es tu casa.</p>`,
+    () => `<p>Te clonan la tarjeta. Te enterás por tres consumos en un local que no conocés, a
+    una hora en que estabas durmiendo.</p>
+    <p>El banco dice que lo va a investigar y que en treinta días te avisa.</p>`,
+  ],
   opciones: [
     { txt:"Reponer lo que perdiste",
       hacer(){ gastar(S.sueldo*.7,"Reponer lo robado"); animo(-9); S.golpes++;
@@ -2115,9 +2274,16 @@ const EVENTOS = [
 },
 {
   id:"accidente", repetible:true, peso:1, cond: () => S.mes > 26,
-  texto: () => `<p>Una caída tonta bajando una escalera. Muñeca fracturada, seis semanas
-  de yeso.</p>
-  <p>${S.flags.seguro ? "Por suerte tenés el seguro." : "No tenés ningún seguro."}</p>`,
+  texto: [
+    () => `<p>Una caída tonta bajando una escalera. Muñeca fracturada, seis semanas de yeso.</p>
+    <p>${S.flags.seguro ? "Por suerte tenés el seguro." : "No tenés ningún seguro."}</p>`,
+    () => `<p>Jugando al fútbol los martes: pisás mal y el tobillo hace un ruido que escuchan
+    todos.</p>
+    <p>${S.flags.seguro ? "El seguro cubre la guardia." : "Vas a la guardia y pagás vos."}</p>`,
+    () => `<p>Un choque leve en una esquina. Vos estás bien, el auto del otro no tanto, y el
+    cuello te empieza a doler recién al otro día.</p>
+    <p>${S.flags.seguro ? "Por lo menos tenés cobertura." : "Sin seguro, todo esto lo pagás vos."}</p>`,
+  ],
   opciones: [
     { txt:"Atenderte bien y parar lo que haga falta",
       sub:"Kinesiología incluida. Sale más y se cura del todo.",
@@ -2149,9 +2315,14 @@ const EVENTOS = [
 },
 {
   id:"golpe-suerte", repetible:true, peso:1, cond: () => S.mes > 18,
-  texto: () => `<p>Aparece plata que no esperabas: una devolución de impuestos mal calculada,
-  un trabajo viejo que te debía, un familiar lejano que se acordó de vos.</p>
-  <p>${fmt(S.sueldo*rnd(.8,2.2))}, más o menos.</p>`,
+  texto: [
+    () => `<p>Aparece plata que no esperabas: una devolución de impuestos mal calculada, un
+    trabajo viejo que te debía, algo así.</p><p>${fmt(S.sueldo*1.4)}, más o menos.</p>`,
+    () => `<p>Una tía que casi no ves te deja algo en herencia. No es una fortuna y no lo
+    esperabas.</p><p>${fmt(S.sueldo*1.4)}.</p>`,
+    () => `<p>Ganás un sorteo de esos que nadie gana: el de la tarjeta, por consumir. Te lo
+    acreditan sin que hayas hecho nada.</p><p>${fmt(S.sueldo*1.4)}.</p>`,
+  ],
   opciones: [
     { txt:"Guardarla toda antes de acostumbrarte",
       hacer(){ const m = S.sueldo*1.4; cobrar(m,"Plata inesperada"); S.suertes++;
@@ -2175,9 +2346,15 @@ const EVENTOS = [
 },
 {
   id:"medida", repetible:true, peso:1, cond: () => S.mes > 30,
-  texto: () => `<p>Un domingo a la noche, cadena nacional. Anuncian un impuesto nuevo que
-  te pega justo donde tenés la plata.</p>
-  <p>El lunes hay cola en todos lados.</p>`,
+  texto: [
+    () => `<p>Un domingo a la noche, cadena nacional. Anuncian un impuesto nuevo que te pega
+    justo donde tenés la plata.</p><p>El lunes hay cola en todos lados.</p>`,
+    () => `<p>Cambian las reglas para comprar dólares de un día para el otro. Límites nuevos,
+    trámite nuevo, y todo el mundo tratando de entender qué se puede y qué no.</p>`,
+    () => `<p>Sale una resolución que nadie termina de entender, ni siquiera los contadores que
+    salen a explicarla en la tele.</p>
+    <p>Lo único claro es que algo va a cambiar en la forma en que tenés guardada tu plata.</p>`,
+  ],
   opciones: [
     { txt:"Mover todo ya, como sea",
       hacer(){ gastar((S.pesos+S.plazo)*.04,"Costos de mover todo apurado"); animo(-5); S.golpes++;
@@ -2198,7 +2375,13 @@ const EVENTOS = [
 },
 {
   id:"vender-cosas", repetible:true, peso:1, cond: () => S.mes > 24,
-  texto: () => `<p>Mirás el placard y el balcón. Hay cosas que no usás hace años.</p>`,
+  texto: [
+    () => `<p>Mirás el placard y el balcón. Hay cosas que no usás hace años.</p>`,
+    () => `<p>Ordenando un fin de semana largo aparece una caja entera de cosas que ni te
+    acordabas que tenías.</p>`,
+    () => `<p>La bici que ibas a usar todos los días junta polvo hace tres años, con la cubierta
+    de atrás baja.</p>`,
+  ],
   opciones: [
     { txt:"Vender todo lo que no usás",
       hacer(){ cobrar(S.sueldo*rnd(.2,.5),"Venta de usados"); animo(2);
@@ -2218,14 +2401,14 @@ const EVENTOS = [
    ========================================================================== */
 let pendientes = [];    // resúmenes de meses acumulados sin escena
 
-const ESPERA_REPETIBLE = 20;   // meses antes de que un evento de la diaria vuelva
+const ESPERA_REPETIBLE = 30;   // meses antes de que un evento de la diaria vuelva
 
 function escenaDisponible(){
   // 0) dos cosas tapan cualquier otra: quedarte sin laburo y el bajón anímico
   const urgentes = [
     { id:"eleccion",         listo: () => !!S.eleccionPendiente,           espera: 2 },
     { id:"volver-a-laburar", listo: () => !S.trabajo && S.sinTrabajo >= 2, espera: 5 },
-    { id:"bajon",            listo: () => S.animo < 22,                    espera: 5 },
+    { id:"bajon",            listo: () => S.animo < 22,                    espera: 7 },
     { id:"pre-eleccion",     listo: () => S.aEleccion <= 4 && S.aEleccion > 0 && S.mes > 8,
       espera: 40 },
   ];
@@ -2299,7 +2482,11 @@ function siguiente(){
     if(tocaRevision()){ pendientes.push(resumenMes()); return pantallaCartera(); }
     pendientes.push(resumenMes());
     const esc = escenaDisponible();
-    if(esc){ S.usados[esc.id] = S.mes; return pantallaEscena(esc); }
+    if(esc){
+      S.usados[esc.id] = S.mes;
+      S.vistas[esc.id] = (S.vistas[esc.id] || 0) + 1;
+      return pantallaEscena(esc);
+    }
     if(pendientes.length >= 3) return pantallaInterludio();
   }
 }
@@ -2513,7 +2700,7 @@ function pantallaEscena(esc){
     ${bloqueResumenes()}
     ${desbloq}
     <div class="card">
-      <div class="texto serif">${esc.texto()}</div>
+      <div class="texto serif">${textoDe(esc)}</div>
     </div>
     <div class="ops">
       ${ops.map((o,i) => `<button class="op" data-i="${i}">${o.txt}
