@@ -145,7 +145,7 @@ Que el súper, la heladera o un casamiento vuelvan dos o tres veces en diez año
 correcto — así es la vida. Lo que rompe la inmersión es leer **el mismo párrafo** otra vez.
 
 Por eso `texto` puede ser una lista en vez de una función: se elige la versión según cuántas
-veces viste esa escena. Veintitrés escenas tienen tres versiones cada una, y muchas
+veces viste esa escena. Veinticuatro escenas tienen tres versiones cada una, y muchas
 aprovechan para saber que es la segunda vez ("otra vez", "la tercera elección de tu vida
 adulta"). Así la repetición deja de ser un bache y pasa a ser continuidad.
 
@@ -196,6 +196,19 @@ Medido sobre 300 partidas, rendimiento real anual:
 | Bono del país | −24% | +9% | +50% | 65% |
 | Índice global | −16% | +10% | +32% | 73% |
 
+## El pronóstico
+
+Cada revisión anual cierra pidiéndote que arriesgues **qué va a rendir más el año que viene**.
+No cambia nada de tu plata. Doce meses después, arriba de la revisión siguiente, aparece el
+veredicto: a qué le apostaste, qué ganó en realidad, y cuántos llevás acertados.
+
+Al final de la década ves el registro completo. Lo normal es terminar cerca de lo que daría
+tirar una moneda, y descubrirlo con **tu propia lista de errores** enseña que no se puede
+predecir de una forma que ningún cartel de texto va a lograr.
+
+Es además la única interacción del juego con una forma distinta: el 92% de las pantallas son
+una escena o su consecuencia, y esto rompe esa monotonía una vez por año.
+
 ## La colección
 
 Los conceptos y logros **no se reinician** al empezar otra vida: se acumulan en el
@@ -227,10 +240,11 @@ Sobre 700 partidas jugadas al azar, el 71% llega a los diez años, 19% termina e
 
 ## Estado
 
-Prototipo, 49 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
+Prototipo, 56 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
 jugar otra partida?** Si la respuesta es no, nada del resto importa.
 
-Falta: las escenas de pareja e hijos son más flacas que las de plata, y no hay sonido.
+Falta: el 92% de las pantallas siguen siendo una escena o su consecuencia — el pronóstico
+rompe eso una vez por año, pero el juego pide siempre lo mismo. Y no hay sonido.
 
 ---
 

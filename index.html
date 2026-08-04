@@ -165,6 +165,16 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
   font-size:13px; text-align:right}
 .rubro-total.ok{color:var(--verde)} .rubro-total.mal{color:var(--oro)}
 .btn[disabled]{opacity:.4; cursor:not-allowed}
+.op.tenue-op{color:var(--muted); border-style:dashed}
+
+/* ---------- veredicto del pronóstico ---------- */
+.veredicto{border-radius:12px; padding:14px 16px; margin:0 0 16px; border:1px solid var(--line)}
+.veredicto.bien{background:rgba(111,191,139,.07); border-color:rgba(111,191,139,.32)}
+.veredicto.mal{background:rgba(226,114,110,.06); border-color:rgba(226,114,110,.28)}
+.veredicto-cab{font-size:11px; letter-spacing:.09em; text-transform:uppercase; margin-bottom:6px}
+.veredicto.bien .veredicto-cab{color:var(--verde)}
+.veredicto.mal .veredicto-cab{color:var(--rojo)}
+.veredicto-cpo{font-size:14.5px; line-height:1.55; color:#ddd4ca}
 
 /* ---------- aviso de desbloqueo ---------- */
 .desbloqueo{display:flex; gap:11px; align-items:flex-start; background:var(--card2);
@@ -314,6 +324,10 @@ function nuevaPartida(origen){
        revisión anual puede mostrarte qué rindió cada cosa igual. */
     idxPlazo: 1, idxBono: 1,
     snap: null,                       // foto del año pasado, para calcular el rendimiento
+    /* El pronóstico: cada revisión anual te pide apostar a qué va a rendir más, y
+       la revisión siguiente te muestra si acertaste. Es la única forma honesta de
+       enseñar que no se puede predecir — con tu propio registro, no con un cartel. */
+    pronostico: null, pronosticos: [],
     /* La gente que vuelve. Cada uno tiene un arco propio que avanza con los años
        y no depende de cómo te fue a vos: Pedro dobla la apuesta lo hayas
        acompañado o no. Ver PERSONAJES. */
@@ -364,6 +378,7 @@ const LOGROS = {
   cabezaFria:    { n:"Cabeza fría",         d:"No vendiste tus dólares en el pico" },
   repartido:     { n:"No pusiste todo",     d:"Terminaste con pesos, dólares y plazo fijo a la vez" },
   vividor:       { n:"Valió la pena",       d:"Terminaste con el ánimo por encima de 75" },
+  adivino:       { n:"Una la viste",        d:"Le acertaste a un pronóstico anual" },
   aguante:       { n:"Aguantaste",          d:"Te quedaste sin trabajo y saliste sin deuda" },
   buenPibe:      { n:"Buen pibe",           d:"Ayudaste a tu familia cuando hizo falta" },
   estudioso:     { n:"Te capacitaste",      d:"Invertiste en aprender algo" },
@@ -403,6 +418,14 @@ const ESPERA_ARCO = 18;
 const avanzaArco = (id, etapa) => { S.gente[id].etapa = etapa; S.gente[id].visto = S.mes; };
 const enArco = (id, etapa) => S.gente[id].etapa === etapa
                            && S.mes - S.gente[id].visto >= ESPERA_ARCO;
+
+/* Cuál de los instrumentos abiertos rindió más en el año que cierra. */
+function ganadorDelAnio(){
+  const r = rendimientoAnual();
+  if(!r) return null;
+  const abiertos = rubrosAbiertos().map(x => x.id);
+  return abiertos.reduce((a, b) => (r[b] > r[a] ? b : a), abiertos[0]);
+}
 
 /* Foto de los mercados para poder comparar dentro de doce meses. */
 const fotoMercados = () => ({ ipc: S.ipc, dolar: S.dolar,
@@ -563,6 +586,7 @@ const RUBROS = [
   { id:"indice", n:"Índice global",      corto:"Índice"   },
 ];
 const rubrosAbiertos = () => RUBROS.filter(r => r.siempre || tieneAcceso(r.id));
+const nombreRubro = id => (RUBROS.find(x => x.id === id) || {}).corto || id;
 
 function valores(){
   return { pesos: Math.max(0, S.pesos), plazo: S.plazo,
@@ -1553,7 +1577,7 @@ const EVENTOS = [
   opciones: [
     { txt:"Escuchar qué necesita",
       hacer(){ avanzaArco("bautista","arranca");
-        if(Math.random() < .48){
+        if(Math.random() < .42){
           cobrar(S.sueldo*.6, "Bautista te devolvió"); animo(6);
           return `<p>Saca un sobre y te devuelve todo, con seis meses de atraso.</p>
           <p>—Perdón la demora —dice—. No te quería escribir hasta poder pagarte.</p>
@@ -2122,6 +2146,202 @@ const EVENTOS = [
   ]
 },
 {
+  id:"plata-pareja", peso:3, cond: () => !!S.flags.pareja && S.mes > 58 && !S.flags.hablaronPlata,
+  texto: () => `<p>Discuten por una compra de nada y a los diez minutos están discutiendo por
+  otra cosa: uno de los dos gana bastante más que el otro y nunca lo hablaron.</p>
+  <p>Hasta ahora venían poniendo mitad y mitad, que suena justo hasta que mirás qué porcentaje
+  del sueldo de cada uno es esa mitad.</p>`,
+  opciones: [
+    { txt:"Poner cada uno en proporción a lo que gana",
+      sub:"El mismo esfuerzo, no el mismo monto.",
+      hacer(){ S.flags.hablaronPlata = true; animo(7); aprender("gastoFijo");
+        recordar("Arreglaron la plata en proporción a lo que gana cada uno");
+        return `<p>Sacan la calculadora un domingo y arman los porcentajes.</p>
+        <p>Mitad y mitad parece justo y casi nunca lo es: al que gana menos, esa mitad le come
+        una parte mucho más grande de su vida. Repartir por proporción es lo que hace que el de
+        menos sueldo pueda ahorrar algo él también.</p>`; } },
+    { txt:"Seguir mitad y mitad, es más simple",
+      hacer(){ S.flags.hablaronPlata = true; animo(-3);
+        recordar("Siguieron poniendo mitad y mitad");
+        return `<p>Lo dejan como está para no complicarla.</p>
+        <p>Funciona mientras la diferencia sea chica. Cuando crece, el que gana menos deja de
+        poder guardar y eso, con los años, se convierte en una dependencia que nadie eligió.</p>`; } },
+    { txt:"Juntar todo y que sea de los dos",
+      hacer(){ S.flags.hablaronPlata = true; S.gastos *= .96; animo(6);
+        recordar("Juntaron toda la plata");
+        return `<p>Una sola cuenta, una sola conversación por mes.</p>
+        <p>Es lo que menos fricción genera de todos los arreglos posibles, y también lo que más
+        confianza pide. No hay una respuesta correcta acá: hay la que ustedes puedan sostener.</p>`; } },
+  ]
+},
+{
+  id:"colegio", peso:3, cond: () => !!S.flags.hijo && S.mes > 76,
+  texto: () => `<p>Hay que anotar en el colegio. El privado del barrio sale
+  ${fmt(S.gastos*.30)} por mes, más matrícula, más los libros, más las cuotas de todo lo demás
+  que aparece.</p>
+  <p>La escuela pública está a doce cuadras y es buena, dicen.</p>`,
+  opciones: [
+    { txt:"Privado, aunque ajuste el resto",
+      hacer(){ S.gastos *= 1.28; animo(3); aprender("gastoFijo");
+        recordar("Mandó a su hijo al privado");
+        return `<p>Anotan en marzo y pagan la matrícula con la tarjeta.</p>
+        <p>Acabás de sumar el gasto fijo más largo de tu vida: doce años, ajustado por inflación
+        todos los años, sin posibilidad real de dar marcha atrás sin que sea un drama.</p>`; } },
+    { txt:"Pública, y lo que ahorrás va a una cuenta a nombre del pibe",
+      hacer(){ S.gastos *= 1.06; animo(2); aprender("horizonte");
+        recordar("Pública, y ahorra la diferencia para su hijo");
+        return `<p>Anotan en la pública y abren una caja de ahorro aparte.</p>
+        <p>Si de verdad ponés la diferencia todos los meses durante doce años, el pibe termina el
+        secundario con algo que muy poca gente tiene a los dieciocho. El "si de verdad" es toda
+        la dificultad del plan.</p>`; } },
+    { txt:"Pública, y listo",
+      hacer(){ S.gastos *= 1.04; recordar("Mandó a su hijo a la pública");
+        return `<p>Anotan en la de doce cuadras.</p>
+        <p>La mitad del país hace exactamente esto y le va bien. La otra mitad se endeuda por
+        una cuota mensual y no siempre por el motivo que declara.</p>`; } },
+  ]
+},
+{
+  id:"amigos-afuera", peso:2, cond: () => S.mes > 62,
+  texto: () => `<p>Se van dos del grupo. Uno a España, otro a Miami.</p>
+  <p>En la cena de despedida todos hacen la misma cuenta en la cabeza sin decirla en voz alta.</p>`,
+  opciones: [
+    { txt:"Averiguar en serio qué haría falta",
+      hacer(){ aprender("capitalHum"); animo(-2); S.flags.mirandoAfuera = true;
+        recordar("Se puso a averiguar para irse del país");
+        return `<p>Papeles, homologaciones, cuánto sale el pasaje, cuánto es un alquiler allá.</p>
+        <p>La cuenta que casi nadie hace es la del piso: irse cuesta varios meses de ingreso por
+        adelantado. Es la decisión más cara que existe y la que más se toma sin números.</p>`; } },
+    { txt:"Descartarlo. Tu vida está acá",
+      hacer(){ animo(3);
+        return `<p>Los abrazás en Ezeiza y volvés en el auto de un amigo, callado.</p>
+        <p>Quedarse también es una decisión, aunque no se sienta como tal. La diferencia es
+        que esta la revisás cada vez que se va alguien más.</p>`; } },
+    { txt:"Buscar trabajo remoto que pague en dólares",
+      sub:"Quedarte acá, cobrar afuera.",
+      hacer(){ aprender("capitalHum"); S.flags.buscando = true; animo(1);
+        if(Math.random() < .38){ S.sueldo *= rnd(1.4,1.9); S.flags.dolarizado = true;
+          S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc;
+          recordar("Consiguió trabajo remoto en dólares");
+          return `<p>Tres meses de entrevistas en un inglés oxidado y entrás.</p>
+          <p>Es la jugada más buscada del país y la más difícil: tu ingreso deja de licuarse sin
+          que tengas que dejar tu casa. Cuando sale, cambia todo.</p>`; }
+        animo(-3); recordar("Buscó trabajo remoto y no salió");
+        return `<p>Mandás treinta postulaciones y llegás a dos entrevistas finales.</p>
+        <p>No sale. Lo que aprendiste igual no se pierde: ahora sabés qué te falta, que es más
+        de lo que sabías antes de intentarlo.</p>`; } },
+  ]
+},
+{
+  id:"jefatura", peso:2, cond: () => !!S.trabajo && S.mes > 66 && !S.flags.jefe,
+  texto: () => `<p>Te ofrecen manejar un equipo. Cuatro personas, más plata, y una parte del
+  trabajo que te gusta pasa a hacerla otro.</p>`,
+  opciones: [
+    { txt:"Aceptar",
+      hacer(){ S.sueldo *= rnd(1.18,1.32); S.flags.jefe = true; animo(-4);
+        recordar("Aceptó manejar un equipo");
+        return `<p>Arrancás en dos semanas con una reunión de una hora que no entendés bien
+        para qué es.</p>
+        <p>El sueldo sube de una vez; lo que se va son las tardes tranquilas. Es un cambio de
+        oficio disfrazado de ascenso, y no siempre es el que uno quiere.</p>`; } },
+    { txt:"Negociar hacerlo a medias",
+      hacer(){
+        if(Math.random() < .45){ S.sueldo *= rnd(1.10,1.20); S.flags.jefe = true; animo(2);
+          recordar("Negoció un rol mixto");
+          return `<p>Armás una propuesta: mitad equipo, mitad lo tuyo. La aceptan.</p>
+          <p>Casi nunca te van a ofrecer el puesto que querés; a veces te lo podés escribir vos.</p>`; }
+        animo(-3); recordar("Quiso un rol mixto y no se pudo");
+        return `<p>Te dicen que el puesto es el que es. Lo tomás o lo dejás.</p>`; } },
+    { txt:"Decir que no",
+      hacer(){ animo(4); recordar("Rechazó manejar gente");
+        return `<p>Le decís que preferís seguir haciendo lo tuyo.</p>
+        <p>Rechazar un ascenso está mal visto y a veces es lo más sano que podés hacer. El
+        problema es que la próxima oferta puede tardar años en volver.</p>`; } },
+  ]
+},
+{
+  id:"comparacion", repetible:true, peso:2, cond: () => S.mes > 60,
+  texto: [
+    () => `<p>Cena de egresados del secundario. Alguien llegó en un auto que no podrías pagar y
+    otro cuenta que se compró un departamento.</p>
+    <p>Volvés a tu casa haciendo una cuenta que no te pidió nadie.</p>`,
+    () => `<p>Instagram a las once de la noche. Un compañero de trabajo de hace años, en las
+    Maldivas.</p><p>Sabés perfectamente cuánto ganaba cuando trabajaban juntos.</p>`,
+  ],
+  opciones: [
+    { txt:"Preguntarle en serio cómo hizo",
+      hacer(){ aprender("capitalHum"); animo(2);
+        return `<p>Le escribís al día siguiente y te cuenta: parte fue laburo, parte fue una
+        ayuda familiar que nunca menciona en público, y parte fue timing.</p>
+        <p>Casi todas las historias de éxito tienen un capítulo que no se cuenta. Preguntar
+        directo es la forma más barata de dejar de compararte contra una ficción.</p>`; } },
+    { txt:"Usarlo de combustible y apretar",
+      hacer(){ animo(-5); S.gastos *= .97;
+        return `<p>Volvés con la decisión de ajustar todo y ponerte las pilas.</p>
+        <p>Funciona unas semanas. Las decisiones que salen de la comparación duran poco, porque
+        el objetivo no es tuyo: es el de la persona con la que te comparaste.</p>`; } },
+    { txt:"Dejarlo pasar",
+      hacer(){ animo(1);
+        return `<p>Cerrás el teléfono y te dormís.</p>
+        <p>Compararse es el impuesto más caro que se paga sin factura. Nadie muestra la parte
+        en la que no le alcanza.</p>`; } },
+  ]
+},
+{
+  id:"separacion", peso:2, cond: () => S.flags.pareja && S.mes > 84 && !S.flags.separado,
+  texto: () => `<p>Se termina. No hay un motivo puntual y eso lo hace más difícil de explicar.</p>
+  <p>Además de todo lo demás, hay que dividir: el depósito del alquiler, las cosas que
+  compraron juntos, y quién se queda dónde.</p>`,
+  opciones: [
+    { txt:"Repartir en partes iguales y no discutir",
+      hacer(){ S.flags.separado = true; S.flags.pareja = null;
+        gastar(S.gastos*.9,"Mudanza y depósito"); S.gastos *= 1.30; S.gastosPiso *= 1.30;
+        animo(-14); recordar("Se separó y repartieron sin pelear");
+        return `<p>Dividen todo por la mitad en una tarde y se ayudan a mudar.</p>
+        <p>Tus gastos fijos suben un tercio de golpe: vivir de a dos era, además de todo lo
+        otro, la mejora financiera más grande que habías tenido. Ahora la perdés entera.</p>`; } },
+    { txt:"Pelear por lo que pusiste vos",
+      hacer(){ S.flags.separado = true; S.flags.pareja = null;
+        gastar(S.gastos*.55,"Mudanza"); S.gastos *= 1.30; S.gastosPiso *= 1.30;
+        animo(-19); recordar("Se separó peleando por las cosas");
+        return `<p>Sacás cuentas de quién puso qué en cinco años. Terminan mandándose mensajes
+        por una tele.</p>
+        <p>Recuperás algo de plata. Lo que se gasta en esa discusión, medido en meses de
+        dormir mal, casi nunca lo compensa.</p>`; } },
+    { txt:"Irte con lo puesto",
+      hacer(){ S.flags.separado = true; S.flags.pareja = null;
+        gastar(S.gastos*1.3,"Empezar de nuevo"); S.gastos *= 1.30; S.gastosPiso *= 1.30;
+        animo(-9); recordar("Se separó y se fue con lo puesto");
+        return `<p>Agarrás dos bolsos y no discutís nada.</p>
+        <p>Sale caro y lo elegís igual. Hay decisiones financieras malas que son buenas
+        decisiones a secas, y esta es una de esas.</p>`; } },
+  ]
+},
+{
+  id:"chequeo", peso:2, cond: () => S.mes > 70,
+  texto: () => `<p>Cumplís treinta y pico y el médico te pide la batería completa: sangre,
+  presión, y una charla sobre cómo venís durmiendo.</p>
+  <p>Te dice que estás bien y que empieces a moverte.</p>`,
+  opciones: [
+    { txt:"Anotarte en algo y sostenerlo",
+      hacer(){ S.gastos *= 1.05; animo(9); S.flags.entrena = true;
+        recordar("Empezó a entrenar y lo sostuvo");
+        return `<p>Tres veces por semana, sin épica.</p>
+        <p>Es un gasto fijo más y probablemente el que mejor rinde de todos los que vas a sumar
+        esta década. Nadie lo pone en una planilla de inversiones y debería estar primero.</p>`; } },
+    { txt:"Empezar a caminar, que es gratis",
+      hacer(){ animo(5);
+        return `<p>Cuarenta minutos por día, con auriculares.</p>
+        <p>Rinde casi lo mismo que el gimnasio y no cuesta un peso. El problema del gimnasio
+        nunca fue el precio: era la obligación de ir para no desperdiciarlo.</p>`; } },
+    { txt:"Más adelante",
+      hacer(){ animo(-4);
+        return `<p>Guardás los estudios en un cajón.</p>
+        <p>El cuerpo es el único activo que no podés vender, refinanciar ni reemplazar. Es el
+        que más gente descuida y el único cuya pérdida no se recupera con plata.</p>`; } },
+  ]
+},
+{
   id:"pre-eleccion", repetible:true, peso:1,
   cond: () => S.aEleccion <= 4 && S.aEleccion > 0 && S.mes > 8,
   texto: [
@@ -2487,7 +2707,7 @@ function siguiente(){
       S.vistas[esc.id] = (S.vistas[esc.id] || 0) + 1;
       return pantallaEscena(esc);
     }
-    if(pendientes.length >= 3) return pantallaInterludio();
+    if(pendientes.length >= 4) return pantallaInterludio();
   }
 }
 
@@ -2591,6 +2811,29 @@ function pantallaCartera(){
   const abiertos = rubrosAbiertos();
   const total = totalCartera(), v = valores();
   const rend = rendimientoAnual();
+
+  /* Veredicto del pronóstico del año pasado. Se resuelve acá, en la misma
+     pantalla donde vas a volver a arriesgar: la lección se siente más cuando el
+     error todavía está caliente y tenés que decidir de nuevo igual. */
+  let veredicto = "";
+  if(S.pronostico && rend){
+    const gano = ganadorDelAnio();
+    const acerto = gano === S.pronostico.elegido;
+    S.pronosticos.push({ mes: S.mes, elegido: S.pronostico.elegido, gano, acerto });
+    if(acerto) lograr("adivino");
+    veredicto = `<div class="veredicto ${acerto ? "bien" : "mal"}">
+      <div class="veredicto-cab">${acerto ? "Le acertaste" : "No la viste venir"}</div>
+      <div class="veredicto-cpo">Hace un año apostaste a <b>${nombreRubro(S.pronostico.elegido)}</b>
+        y el que más rindió fue <b>${nombreRubro(gano)}</b>${acerto ? "." : ", con "
+        + (rend[gano]*100).toFixed(1).replace(".",",") + "% real contra "
+        + (rend[S.pronostico.elegido]*100).toFixed(1).replace(".",",") + "% del tuyo."}
+        ${S.pronosticos.length >= 3
+          ? "Llevás " + S.pronosticos.filter(x => x.acerto).length + " de "
+            + S.pronosticos.length + " pronósticos."
+          : ""}</div>
+    </div>`;
+    S.pronostico = null;
+  }
   if(!objetivoCartera){
     objetivoCartera = {};
     // Arranca mostrando cómo estás parado hoy, no una propuesta nuestra.
@@ -2606,6 +2849,7 @@ function pantallaCartera(){
     <p class="texto" style="font-size:15px; color:var(--muted); margin:0 0 18px">
       Tenés ${fmt(total)}. Una vez por año podés reacomodar cómo está repartida.
       Mover plata paga comisión, así que rebalancear por rebalancear cuesta.</p>
+    ${veredicto}
     ${rend ? `<p class="texto" style="font-size:14px; color:var(--dim); margin:-8px 0 16px">
       Al lado de cada uno, cuánto rindió en los últimos doce meses <b>descontada la
       inflación</b>. Un +0% significa que empataste con los precios; los pesos quietos
@@ -2656,8 +2900,8 @@ function pantallaCartera(){
     };
   });
   document.getElementById("saltar").onclick = () => {
-    S.ultimaRevision = S.mes; S.snap = fotoMercados();
-    objetivoCartera = null; aprender("horizonte"); siguiente();
+    S.ultimaRevision = S.mes; objetivoCartera = null; aprender("horizonte");
+    pantallaPronostico();
   };
   const ap = document.getElementById("aplicar");
   if(ap) ap.onclick = () => {
@@ -2665,17 +2909,58 @@ function pantallaCartera(){
     const usados = Object.values(objetivoCartera).filter(x => x >= 10).length;
     if(usados >= 3) aprender("diversif");
     if(Object.values(objetivoCartera).some(x => x >= 80)) aprender("concentr");
-    S.ultimaRevision = S.mes; S.snap = fotoMercados();
-    objetivoCartera = null;
+    S.ultimaRevision = S.mes; objetivoCartera = null;
+    S.movidoUltimo = movido;
     guardar();
-    pantallaConsecuencia("Reacomodaste la cartera",
-      movido > 0
-        ? `<p>Moviste ${fmt(movido)} entre una cosa y otra.</p>
-           <p>Las comisiones ya se descontaron. No se sienten de a una; a diez años de
-           rebalanceos, sí.</p>`
-        : `<p>Hiciste los números y quedó casi igual a como estaba.</p>
-           <p>Que es, la mayoría de las veces, la respuesta correcta.</p>`);
+    pantallaPronostico();
   };
+}
+
+/* ==========================================================================
+   EL PRONÓSTICO
+   Cierra la revisión anual pidiéndote que apuestes a qué va a rendir más. El
+   veredicto llega doce meses después, arriba de la revisión siguiente.
+
+   Es la mejor forma que encontré de enseñar que no se puede predecir: no un
+   cartel diciéndolo, sino tu propio registro de aciertos al final de la década.
+   Lo normal es terminar cerca de lo que daría tirar una moneda, y eso lo
+   descubrís vos solo. */
+function pantallaPronostico(){
+  pintarHud();
+  const abiertos = rubrosAbiertos().filter(r => r.id !== "pesos");
+  if(abiertos.length < 2){       // sin al menos dos opciones no hay nada que arriesgar
+    S.snap = fotoMercados(); return siguiente();
+  }
+  const movido = S.movidoUltimo || 0;
+  S.movidoUltimo = 0;
+
+  $app.innerHTML = `<div class="fade">
+    ${movido > 0
+      ? `<div class="card tenue"><div class="eyebrow gris">Cartera reacomodada</div>
+           <div class="texto" style="font-size:15px">Moviste ${fmt(movido)} entre una cosa y
+           otra. Las comisiones ya se descontaron: no se sienten de a una, a diez años sí.</div>
+         </div>`
+      : ""}
+    <div class="eyebrow">Antes de seguir</div>
+    <h2>¿Qué va a rendir más este año?</h2>
+    <p class="texto" style="font-size:15px; color:var(--muted); margin:0 0 18px">
+      Arriesgá una. No cambia nada de tu plata — es solo para que dentro de doce meses
+      podamos mirar juntos qué tan bien la viste.</p>
+    <div class="ops">
+      ${abiertos.map(r => `<button class="op" data-id="${r.id}">${r.n}</button>`).join("")}
+      <button class="op tenue-op" data-id="">Prefiero no arriesgar</button>
+    </div>
+  </div>`;
+
+  $app.querySelectorAll(".op").forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.id;
+      if(id) S.pronostico = { mes: S.mes, elegido: id };
+      S.snap = fotoMercados();
+      guardar();
+      siguiente();
+    };
+  });
 }
 
 function pantallaInterludio(){
@@ -2932,6 +3217,7 @@ function pantallaFinal(){
   const faltantes  = entradas.filter(([id]) => S.conceptos[id] == null);
   const nAprendidos = aprendidos.length, totalConceptos = entradas.length;
   const logrados = Object.entries(LOGROS).filter(([id]) => S.logros[id] != null);
+  const aciertos = S.pronosticos.filter(x => x.acerto).length;
   const col = sumarAColeccion();
   const totalLogros = Object.keys(LOGROS).length;
   const yaSabidos = Object.keys(col.col.conceptos).length;
@@ -2985,6 +3271,23 @@ function pantallaFinal(){
       ${S.elecciones === 1 ? "elección" : "elecciones"} y el índice global multiplicó por
       ${(S.indicePrecio/100).toFixed(2).replace(".",",")}. En otra partida te toca otro
       país. Esa es la idea: si hubiera una jugada que gana siempre, no habría nada que aprender.</p>
+
+    ${S.pronosticos.length >= 2 ? `
+    <hr class="sep">
+    <div class="eyebrow">Tus pronósticos · ${aciertos} de ${S.pronosticos.length}</div>
+    <p class="texto" style="font-size:15px; color:var(--muted); margin-bottom:12px">
+      Cada año arriesgaste qué iba a rendir más. ${
+        aciertos / S.pronosticos.length >= .5
+          ? "Le pegaste más de la mitad de las veces. Con cuatro o cinco opciones, tirando una moneda se acierta bastante menos — pero tampoco alcanza para creerte que la ves venir: diez tiros son muy pocos para distinguir el ojo de la suerte."
+          : "Como casi todo el mundo. No es que hayas elegido mal: es que no se puede. Por eso la respuesta no es acertar, es estar parado de una forma que aguante cualquiera de los resultados."}</p>
+    <div class="card tenue">
+      ${S.pronosticos.map(pr => `<div class="mes-linea">
+        <span>Año ${Math.floor(pr.mes/12)}</span>
+        <span style="text-align:right; color:var(--text)">
+          dijiste ${nombreRubro(pr.elegido)} · fue ${nombreRubro(pr.gano)}
+          <b style="color:${pr.acerto ? "var(--verde)" : "var(--rojo)"}">${pr.acerto ? "✓" : "✗"}</b>
+        </span></div>`).join("")}
+    </div>` : ""}
 
     <hr class="sep">
     <div class="eyebrow">Lo que aprendiste · ${nAprendidos} de ${totalConceptos}</div>
