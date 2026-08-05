@@ -188,6 +188,13 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
   border:3px solid var(--card); box-shadow:0 0 0 1px var(--line);
 }
 .perilla:focus-visible{ outline:2px solid var(--oro); outline-offset:4px; border-radius:6px; }
+/* ---------- saldo sin asignar ---------- */
+.saldo{margin-top:14px; padding-top:12px; border-top:1px solid var(--line);
+  font-size:13.5px; text-align:right; font-variant-numeric:tabular-nums}
+.saldo.cero{color:var(--verde)}
+.saldo.hay{color:var(--oro)}
+.saldo b{font-size:15px}
+.saldo-plata{color:var(--muted); margin-left:6px}
 .rubro-total{margin-top:14px; padding-top:11px; border-top:1px solid var(--line);
   font-size:13px; text-align:right}
 .rubro-total.ok{color:var(--verde)} .rubro-total.mal{color:var(--oro)}
@@ -3140,7 +3147,7 @@ function pantallaCartera(){
           <div class="rubro-monto" data-monto="${r.id}">${fmtK(total * obj / 100)}</div>
         </div>`;
       }).join("")}
-      <div class="rubro-total ok">Todo repartido · al mover una, las otras se acomodan</div>
+      <div id="saldo" class="saldo cero">Todo repartido</div>
     </div>
 
     <div class="ops">
@@ -3151,28 +3158,18 @@ function pantallaCartera(){
       índice pueden valer mucho y no servirte el martes que se rompe algo.</p>
   </div>`;
 
-  /* Mover una perilla reparte lo que queda entre las demás, en proporción a como
-     estaban. Así siempre suma 100 y nunca hay que bajar algo primero para poder
-     subir otra cosa — que era lo molesto de los botones de a 5%.
-     Se actualiza el DOM en el lugar, sin volver a dibujar la pantalla: si se
-     redibujara, el dedo perdería la perilla a mitad del arrastre. */
-  function repartirResto(id, nuevo){
-    objetivoCartera[id] = nuevo;
-    const otros = abiertos.map(r => r.id).filter(k => k !== id);
-    if(!otros.length){ objetivoCartera[id] = 100; return; }
-    const resto = 100 - nuevo;
-    const suma = otros.reduce((a, k) => a + (objetivoCartera[k] || 0), 0);
-    let acum = 0;
-    otros.forEach((k, i) => {
-      const v = i === otros.length - 1
-        ? resto - acum
-        : Math.round(suma > 0 ? (objetivoCartera[k] || 0) / suma * resto : resto / otros.length);
-      objetivoCartera[k] = clamp(v, 0, 100);
-      acum += objetivoCartera[k];
-    });
-  }
+  /* Cada perilla se mueve sola. Lo que bajás queda como saldo sin asignar y lo
+     ponés donde quieras — que es como se reparte plata de verdad. La versión
+     anterior acomodaba las otras en proporción automáticamente, y eso te sacaba
+     de las manos la decisión de a dónde iba lo que acababas de liberar.
+
+     El tope de cada perilla es lo que ya tiene más el saldo libre, así nunca se
+     pasa de 100. El DOM se actualiza en el lugar: si se redibujara la pantalla,
+     el dedo perdería la perilla a mitad del arrastre. */
+  const saldoLibre = () => 100 - abiertos.reduce((a, r) => a + (objetivoCartera[r.id] || 0), 0);
 
   function refrescarCartera(){
+    const libre = saldoLibre();
     abiertos.forEach(r => {
       const pct = objetivoCartera[r.id] || 0;
       const $p = $app.querySelector(`[data-pct="${r.id}"]`);
@@ -3181,18 +3178,36 @@ function pantallaCartera(){
       if($p) $p.textContent = pct + "%";
       if($m) $m.textContent = fmtK(total * pct / 100);
       if($s){
+        /* La escala queda siempre en 0–100 para que la misma posición signifique
+           siempre lo mismo. El freno se aplica al valor, no al máximo: si
+           arrastrás más allá de lo que tenés libre, la perilla vuelve sola. */
         if(+$s.value !== pct) $s.value = pct;
         $s.style.setProperty("--fill", pct + "%");
       }
     });
+    const $saldo = document.getElementById("saldo");
+    if($saldo){
+      $saldo.className = "saldo " + (libre === 0 ? "cero" : "hay");
+      $saldo.innerHTML = libre === 0
+        ? "Todo repartido"
+        : `Sin asignar: <b>${libre}%</b> <span class="saldo-plata">${fmtK(total * libre / 100)}</span>`;
+    }
+    const $ap = document.getElementById("aplicar");
+    if($ap){
+      $ap.disabled = libre !== 0;
+      $ap.textContent = libre === 0 ? "Aplicar y seguir" : `Te falta repartir ${libre}%`;
+    }
   }
 
   $app.querySelectorAll(".perilla").forEach(sl => {
     sl.addEventListener("input", () => {
-      repartirResto(sl.dataset.r, +sl.value);
+      const id = sl.dataset.r;
+      const otros = abiertos.reduce((a, r) => a + (r.id === id ? 0 : (objetivoCartera[r.id] || 0)), 0);
+      objetivoCartera[id] = clamp(+sl.value, 0, 100 - otros);
       refrescarCartera();
     });
   });
+  refrescarCartera();
   document.getElementById("saltar").onclick = () => {
     S.ultimaRevision = S.mes; objetivoCartera = null; aprender("horizonte");
     pantallaPronostico();
