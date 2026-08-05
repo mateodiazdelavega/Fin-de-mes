@@ -71,9 +71,14 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
 .op .sub{display:block; margin-top:5px; font-size:13px; color:var(--muted); line-height:1.4}
 .op[disabled]{opacity:.42; cursor:not-allowed}
 .op[disabled]:hover{border-color:var(--line); background:var(--card)}
+/* La opción elegida se queda en pantalla como encabezado de lo que pasó. */
+.op.elegida{opacity:1; border-color:rgba(217,164,65,.42); background:var(--card2); cursor:default}
+.op.elegida:hover{border-color:rgba(217,164,65,.42); background:var(--card2)}
+.op.elegida::before{content:"Elegiste"; display:block; font-size:10.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--oro); margin-bottom:6px}
 
 /* ---------- consecuencia ---------- */
-.conseq{border-left:2px solid var(--oro); padding-left:15px; margin:4px 0 18px; font-size:16px; line-height:1.6; color:#ddd4ca}
+.conseq{border-left:2px solid var(--oro); padding-left:15px; margin:14px 0 18px; font-size:16px; line-height:1.6; color:#ddd4ca}
 .conseq p{margin:0 0 10px} .conseq p:last-child{margin-bottom:0}
 
 /* ---------- cierre de mes ---------- */
@@ -3266,6 +3271,10 @@ function pantallaInterludio(){
   document.getElementById("seguir").onclick = siguiente;
 }
 
+/* La consecuencia aparece acá mismo, debajo de la opción que elegiste, en vez de
+   reemplazar la pantalla entera. Así quedan juntos el cierre del mes, la escena,
+   lo que elegiste y lo que pasó — que es como se lee una historia y no una
+   sucesión de tarjetas sueltas. */
 function pantallaEscena(esc){
   pintarHud();
   const ops = esc.opciones.filter(o => !o.cond || o.cond());
@@ -3276,17 +3285,37 @@ function pantallaEscena(esc){
     <div class="card">
       <div class="texto serif">${textoDe(esc)}</div>
     </div>
-    <div class="ops">
+    <div class="ops" id="ops">
       ${ops.map((o,i) => `<button class="op" data-i="${i}">${o.txt}
         ${o.sub ? `<span class="sub">${o.sub}</span>` : ""}</button>`).join("")}
-    </div></div>`;
+    </div>
+    <div id="resultado"></div></div>`;
   pendientes = [];
+
   $app.querySelectorAll(".op").forEach(b => {
     b.onclick = () => {
       const o = ops[+b.dataset.i];
       const txt = o.hacer() || "";
       guardar();
-      pantallaConsecuencia(o.txt, txt);
+
+      // Las opciones no elegidas se van; la elegida queda como encabezado.
+      const $ops = document.getElementById("ops");
+      $ops.querySelectorAll(".op").forEach(x => {
+        if(x !== b) x.remove();
+      });
+      b.classList.add("elegida");
+      b.disabled = true;
+
+      const avisos = S.avisos.slice(); S.avisos = [];
+      document.getElementById("resultado").innerHTML = `
+        <div class="conseq serif fade">${txt}</div>
+        ${avisos.map(a => `<div class="aviso">${a}</div>`).join("")}
+        ${bloqueDesbloqueos()}
+        <button class="btn" id="seguir">Seguir</button>`;
+      document.getElementById("seguir").onclick = siguiente;
+      pintarHud();
+      document.getElementById("resultado")
+        .scrollIntoView({ behavior:"smooth", block:"nearest" });
     };
   });
 }
@@ -3319,21 +3348,6 @@ function bloqueDesbloqueos(){
   S.nuevos = [];
   return html;
 }
-
-function pantallaConsecuencia(elegido, txt){
-  pintarHud();
-  $app.innerHTML = `<div class="fade">
-    <div class="card">
-      <div class="eyebrow">Elegiste: ${elegido.toLowerCase()}</div>
-      <div class="conseq serif">${txt}</div>
-    </div>
-    ${S.avisos.length ? S.avisos.map(a => `<div class="aviso" style="margin-bottom:14px">${a}</div>`).join("") : ""}
-    ${bloqueDesbloqueos()}
-    <button class="btn" id="seguir">Seguir</button></div>`;
-  S.avisos = [];
-  document.getElementById("seguir").onclick = siguiente;
-}
-
 /* ==========================================================================
    GRÁFICO DEL PATRIMONIO
    Una sola serie, así que no lleva leyenda: el título la nombra. Va en pesos

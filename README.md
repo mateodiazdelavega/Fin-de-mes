@@ -320,8 +320,14 @@ Sobre 700 partidas jugadas al azar, el 71% llega a los diez años, 19% termina e
 Prototipo, 59 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
 jugar otra partida?** Si la respuesta es no, nada del resto importa.
 
-Falta: el 92% de las pantallas siguen siendo una escena o su consecuencia — el pronóstico
-rompe eso una vez por año, pero el juego pide siempre lo mismo. Y no hay sonido.
+La consecuencia de lo que elegís aparece **debajo de la opción, en la misma pantalla**, en
+vez de reemplazarla. Así quedan juntos el cierre del mes, la escena, tu decisión y lo que
+pasó — que es como se lee una historia y no una sucesión de tarjetas sueltas. Eso bajó los
+redibujados de pantalla de 128 por partida a 53 (los toques son los mismos: elegir y
+seguir).
+
+Falta: el juego te sigue pidiendo casi siempre lo mismo — leer y elegir una opción. El
+pronóstico anual es la única interacción con otra forma. Y no hay sonido.
 
 ---
 
