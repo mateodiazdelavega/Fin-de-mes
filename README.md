@@ -105,7 +105,7 @@ Y enseña algo que el juego no decía: **la forma de tu ingreso importa tanto co
 El monotributista cobra 24% más que el empleado y termina peor en casi todos los casos: el
 aguinaldo es un mes de sueldo por año, la indemnización es el colchón que no tuviste que
 juntar, y un mes flojo no lo cubre nadie. Medido sobre las veinte combinaciones, llegar a
-los diez años va del 20% al 78% según cómo arranques.
+los diez años va del 23% al 75% según cómo arranques.
 
 Antes de todo eso hay una pantalla que pregunta tu nombre, y aparece después en boca de los
 personajes y en el epílogo.
@@ -129,6 +129,34 @@ las que le enseñan a ese camino lo que ese camino tiene para enseñar.
 
 Medido sobre 40 partidas por combinación, las veinte reciben sus escenas propias entre el
 80% y el 100% de las veces.
+
+### Y las escenas compartidas cambian de piel
+
+Tener escenas propias no alcanzaba. El problema más visible era el otro: las escenas que sí
+comparten todos **contaban una vida que no era la tuya**. A un monotributista le llegaba una
+paritaria. Al del negocio familiar lo echaban por reestructuración. A los dos les ofrecían
+manejar un equipo de cuatro personas.
+
+Ahora `texto` puede ser un objeto indexado por cómo te ganás la vida, con sus propias
+variantes adentro. Y las opciones se filtran igual, así que **no cambian los sustantivos:
+cambia la decisión**.
+
+| La misma escena | Empleado | Por tu cuenta | Negocio familiar | Estudiando |
+|---|---|---|---|---|
+| El aumento anual | Te dan menos que la inflación: ¿pedís más? | Nadie te actualiza: ¿te subís el precio vos? | ¿Remarcás con la lista nueva o aguantás la clientela? | ¿Cobrás más la hora o priorizás rendir? |
+| Perder el ingreso | Reestructuración | Se te cae el cliente que era la mitad | El local no cubre los costos hace cuatro meses | Se terminó la changa en mitad de la cursada |
+| La oferta del año 2 | Te busca otra empresa | Te ofrecen entrar en relación de dependencia | Te ofrecen un puesto y tu viejo se queda solo | Un full time que no te deja cursar |
+| Manejar gente | Te ofrecen un equipo | ¿Tomás a alguien y le pagás cobres o no? | ¿Ponés un encargado en el local? | — |
+| La plata que cae de golpe | Bono por objetivos | Un cliente te paga tres facturas juntas | Diciembre, el local no para en tres semanas | Sale la beca |
+
+La del año 2 es la que más se ramifica: dejar la facultad cierra el hito de recibirse para
+siempre, y entrar en relación de dependencia te apaga las escenas de facturar y te enciende
+las de estar en blanco. Lo que elegís en el mes 22 decide qué situaciones existen en el 60.
+
+Hay un chequeo dedicado a esto (`coherencia.js`): renderiza el texto de las 69 escenas en
+las cuatro vidas y busca palabras que no correspondan —"tu jefe", "aguinaldo", "paritaria",
+"indemnización"— con una lista de excepciones para los casos donde la palabra aparece
+justamente porque *eso* es lo que no tenés.
 
 ## La escalera
 
@@ -228,7 +256,7 @@ Medido sobre 400 partidas, pantallas que muestran texto ya leído:
 
 ```
 antes de las variantes   26 de 66   (39%)
-después                 2,4 de 52   ( 5%)
+después                 3,3 de 52   ( 6%)
 ```
 
 ## La gente que vuelve
@@ -339,10 +367,10 @@ distintos, contra uno que elige al azar:
 
 | | al azar | equilibrado | ahorrador |
 |---|---|---|---|
-| Meses de aire (mediana) | 4,4 | 6,6 | **24,7** |
-| Llegaste con aire | 0% | 11% | 1% |
-| Con plata y cansado | 1% | 13% | **50%** |
-| Quiebre o tocar fondo | 60% | 10% | 8% |
+| Meses de aire (mediana) | 5,1 | 9,7 | **26,0** |
+| Llegaste con aire | 0% | 13% | 3% |
+| Con plata y cansado | 1% | 11% | **53%** |
+| Quiebre o tocar fondo | 52% | 8% | 13% |
 
 Lo importante es la última columna: **el que optimiza solo la plata termina rico y roto casi
 la mitad de las veces.** Ninguna estrategia miope llega al mejor final, y esa es exactamente
@@ -376,8 +404,8 @@ La década puede cortarse antes de los diez años, y no como castigo por jugar m
 - **Tocar fondo.** Sin trabajo, sin crédito y sin colchón para bancar la espera.
 - **Insolvencia.** Cuando lo que debés, contando cuotas, supera lo que podés pagar.
 
-Sobre 300 partidas jugadas al azar, el 44% llega a los diez años, 50% termina en quiebre y
-6% tocando fondo. Decidiendo con la cabeza el quiebre baja al 8-10%, que es lo que tiene
+Sobre 300 partidas jugadas al azar, el 49% llega a los diez años, 46% termina en quiebre y
+5% tocando fondo. Decidiendo con la cabeza el quiebre baja al 8-13%, que es lo que tiene
 que pasar: el juego es duro con el que no mira, no con el que sí.
 
 ## Estado

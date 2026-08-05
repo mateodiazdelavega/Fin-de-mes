@@ -571,9 +571,20 @@ function rendimientoAnual(){
    bache y pasa a ser continuidad. */
 function textoDe(esc){
   const n = Math.max(0, (S.vistas[esc.id] || 1) - 1);
-  const t = esc.texto;
+  let t = esc.texto;
+  /* Si `texto` es un objeto, elige por cómo te ganás la vida, y adentro puede
+     tener su propia lista de variantes. Un bono de fin de año no le pasa a un
+     monotributista: le pasa que un cliente le paga tres facturas juntas. Es la
+     misma escena y la misma decisión — cambia de dónde salió la plata, que es
+     lo que hace que la situación tenga que ver con la vida que elegiste. */
+  if(t && !Array.isArray(t) && typeof t !== "function") t = t[S.trabajoTipo] || t.otro;
   return Array.isArray(t) ? t[Math.min(n, t.length - 1)]() : t();
 }
+
+/* Cuánto rinde el título según cómo llegaste a él: el que priorizó cursar
+   entra mejor, el que cambió facultad por changas mejor pagas entra peor y dos
+   años más tarde. La decisión es del mes 14; la factura llega en el 52. */
+const saltoTitulo = () => S.flags.enfocado ? 1.12 : S.flags.menosFacu ? .88 : 1;
 
 /* ---------- lecturas derivadas ---------- */
 const fechaMes  = () => (MES_INICIAL + S.mes) % 12;
@@ -1173,11 +1184,28 @@ function armarArranque(viv, tra){
 /* ---------- HITOS: se disparan en orden, en el mes indicado ---------- */
 const HITOS = [
 {
+  /* La primera escena de todas. Es la que tiene que dejar claro, antes que
+     ninguna otra, que el juego sabe qué vida elegiste. */
   id:"primer-sueldo", mes:1,
-  texto: () => `<p>Cae el sueldo un jueves a la mañana. Mirás el homebanking tres veces por
-  las dudas, como si el número se pudiera arrepentir.</p>
-  <p>Tu vieja dice que guardes. Tu amigo dice que te lo ganaste. Los dos tienen razón
-  y eso es lo molesto.</p>`,
+  texto: {
+    otro: () => `<p>Cae el sueldo un jueves a la mañana. Mirás el homebanking tres veces por
+    las dudas, como si el número se pudiera arrepentir.</p>
+    <p>Tu vieja dice que guardes. Tu amigo dice que te lo ganaste. Los dos tienen razón
+    y eso es lo molesto.</p>`,
+    monotributo: () => `<p>Entra la primera factura que emitiste en tu vida. Tardó veinte días
+    más de lo que te habían dicho y entró.</p>
+    <p>No hay recibo, no hay quincena, no hay nadie que te avise. Está la transferencia y listo,
+    y el mes que viene hay que volver a empezar de cero.</p>`,
+    comercio: () => `<p>Cierran la caja del mes y tu viejo te pasa tu parte, como hace treinta
+    años que hace con todo.</p>
+    <p>No es un sueldo: es lo que sobró después de pagar proveedores, luz y alquiler. Si el mes
+    que viene entra menos gente, tu parte es más chica. Nadie te lo explica, se entiende
+    solo.</p>`,
+    estudia: () => `<p>Juntás lo de las changas del mes y te da bastante menos de lo que
+    esperabas para las horas que le pusiste.</p>
+    <p>Tu vieja dice que guardes. Tu amigo dice que te lo ganaste. Con este número, los dos
+    consejos al mismo tiempo son casi imposibles.</p>`,
+  },
   opciones: [
     { txt:"Guardar la mitad y no tocarla",
       sub:"Sin plan todavía. Solo no gastarla.",
@@ -1259,17 +1287,35 @@ const HITOS = [
   ]
 },
 {
+  /* La misma lección —nadie actualiza tu ingreso por vos— contada desde los
+     cuatro lugares distintos donde se puede arrancar. El empleado tiene a quién
+     pedirle; el que labura solo tiene que convocarse su propia paritaria, que
+     es bastante más difícil. Las opciones cambian, no solo los sustantivos. */
   id:"aumento-corto", mes:14, ventana:5, prob:.8,
-  texto: () => `<p>Te llama tu jefe. Aumento del ${pct(rnd(.09,.14))} "por el esfuerzo del año".</p>
-  <p>Hacés la cuenta mientras él habla. En el año que pasó, todo subió bastante más que eso.</p>`,
+  texto: () => S.trabajoTipo === "monotributo"
+    ? `<p>Repasás lo que cobrás por trabajo. Es el mismo número que pusiste hace un año, cuando
+       arrancaste, y en el medio todo subió ${pct(rnd(.55,1.4))}.</p>
+       <p>Nadie te va a llamar para avisarte que tenés que cobrar más.</p>`
+    : S.trabajoTipo === "comercio"
+    ? `<p>Los proveedores mandaron lista nueva por tercera vez en el año. Los precios del salón
+       son los de la lista anterior.</p>
+       <p>Tu viejo dice que si remarcás todo de golpe la gente se va a la otra cuadra.</p>`
+    : S.trabajoTipo === "estudia"
+    ? `<p>La changa te paga por hora lo mismo que hace un año. Vos ya sos bastante más rápido
+       que cuando empezaste.</p>
+       <p>El que te contrata no lo va a notar solo.</p>`
+    : `<p>Te llama tu jefe. Aumento del ${pct(rnd(.09,.14))} "por el esfuerzo del año".</p>
+       <p>Hacés la cuenta mientras él habla. En el año que pasó, todo subió bastante más que
+       eso.</p>`,
   opciones: [
-    { txt:"Agradecer y seguir",
+    /* --- empleado en blanco --- */
+    { txt:"Agradecer y seguir", cond: () => S.trabajoTipo === "blanco",
       sub:"No es momento de hacer olas.",
-      hacer(){ animo(-4); recordar("Se comió un aumento por debajo de la inflación");
+      hacer(){ animo(-4); aprender("licuacion"); recordar("Se comió un aumento por debajo de la inflación");
         return `<p>Le decís gracias. Él dice que se lo peleó con recursos humanos.</p>
         <p>Capaz es cierto. Igual, tu sueldo real es más chico que el año pasado, y eso no lo
         arregla la buena onda.</p>`; } },
-    { txt:"Pedir más, con números",
+    { txt:"Pedir más, con números", cond: () => S.trabajoTipo === "blanco",
       sub:"Llevar la cuenta hecha. Puede salir mal.",
       hacer(){
         if(Math.random() < .45){ S.sueldo *= 1.09; animo(4); recordar("Negoció el aumento y le fue bien");
@@ -1279,28 +1325,124 @@ const HITOS = [
         return `<p>Te dice que "no hay presupuesto" con una cara que da a entender que sí hay,
         pero no para vos.</p><p>Quedás marcado como el que pide. A veces sale así. No por eso
         estuvo mal pedir.</p>`; } },
-    { txt:"Empezar a mirar afuera, sin decir nada",
+    { txt:"Empezar a mirar afuera, sin decir nada", cond: () => S.trabajoTipo === "blanco",
       sub:"Actualizar el currículum en silencio.",
       hacer(){ S.flags.buscando = true; recordar("Empezó a buscar en silencio");
         return `<p>Actualizás el perfil un domingo a la noche.</p>
         <p>En este país el aumento más grande casi nunca te lo da tu empresa. Te lo da la que
         te viene a buscar.</p>`; } },
+
+    /* --- por tu cuenta --- */
+    { txt:"Subirle el precio a todos, de una", cond: () => S.trabajoTipo === "monotributo",
+      sub:"Recuperás el atraso. Alguno se va.",
+      hacer(){ aprender("licuacion");
+        if(Math.random() < .62){ S.sueldo *= 1.34; animo(5); recordar("Actualizó sus precios de una");
+          return `<p>Mandás el mensaje con la lista nueva y te quedás mirando el teléfono.</p>
+          <p>Se queja uno, se va ninguno. El que labura por su cuenta no tiene paritaria: la
+          tiene que convocar él, y el costo real de no hacerlo es que se te licúa el ingreso
+          entero mientras esperás el momento cómodo, que no llega nunca.</p>`; }
+        S.sueldo *= 1.16; animo(-5); recordar("Subió precios y perdió un cliente");
+        return `<p>Dos clientes aceptan. El tercero, que era casi la mitad de lo que facturabas,
+        te dice que va a "ver otras opciones" y no vuelve.</p>
+        <p>Perdiste el más grande y aun así estás cobrando más que antes. Depender de un solo
+        cliente era el problema; el aumento solo lo hizo visible.</p>`; } },
+    { txt:"Subir solo a los clientes nuevos", cond: () => S.trabajoTipo === "monotributo",
+      sub:"No incomodás a nadie. Tarda años.",
+      hacer(){ S.sueldo *= 1.09; recordar("Actualizó precios solo a los nuevos");
+        return `<p>Los que ya están siguen pagando lo de siempre. Los que entran, pagan la lista
+        nueva.</p>
+        <p>Es cómodo y es lento: tus clientes viejos son los que más trabajo te dan y los que
+        peor te pagan, y lo van a seguir siendo hasta que vos decidas otra cosa.</p>`; } },
+    { txt:"Dejarlo así hasta que se acomode", cond: () => S.trabajoTipo === "monotributo",
+      sub:"Nadie se enoja. Vos cobrás menos todos los meses.",
+      hacer(){ animo(-3); aprender("licuacion"); recordar("No actualizó sus precios");
+        return `<p>Lo dejás para más adelante. Siempre hay un mes peor para mandar la lista
+        nueva.</p>
+        <p>No pasó nada, que es exactamente el problema: la licuación no avisa. Cobrás lo mismo
+        y comprás cada vez menos, y como el número no bajó, no se siente una pérdida.</p>`; } },
+
+    /* --- negocio familiar --- */
+    { txt:"Remarcar todo con la lista nueva", cond: () => S.trabajoTipo === "comercio",
+      sub:"Protegés el stock. Se te va algo de clientela.",
+      hacer(){ aprender("costoRepo"); S.sueldo *= 1.22; animo(-3); recordar("Remarcó con la lista nueva");
+        return `<p>Cambiás los carteles un martes a la mañana. Dos clientes de siempre miran el
+        precio y no compran.</p>
+        <p>Duele y es lo correcto: si vendés a la lista vieja lo que vas a reponer a la nueva,
+        no estás haciendo precio, estás regalando capital. El negocio se achica sin que nadie
+        vea el momento en que se achicó.</p>`; } },
+    { txt:"Remarcar de a poco, sin que se note", cond: () => S.trabajoTipo === "comercio",
+      sub:"Aguantás la clientela. Vas siempre atrás.",
+      hacer(){ S.sueldo *= 1.10;
+        return `<p>Subís unos pesos por semana, producto por producto.</p>
+        <p>Mantenés la gente y vas corriendo atrás de los costos todo el año. Funciona mientras
+        la inflación sea baja; cuando se acelera, la diferencia la ponés vos sin darte
+        cuenta.</p>`; } },
+    { txt:"Aguantar el precio. La clientela vale más", cond: () => S.trabajoTipo === "comercio",
+      sub:"Vendés más unidades y ganás menos por cada una.",
+      hacer(){ aprender("costoRepo"); S.sueldo *= 1.02; animo(4); recordar("Aguantó los precios");
+        return `<p>Corre la voz de que ustedes no remarcaron y entra más gente que nunca.</p>
+        <p>El salón lleno también puede ser una mala noticia: estás vendiendo barato lo que vas
+        a reponer caro, y el mostrador no te avisa. Es la forma más simpática que hay de
+        fundirse.</p>`; } },
+
+    /* --- changas y facultad --- */
+    { txt:"Pedir más por hora", cond: () => S.trabajoTipo === "estudia",
+      sub:"Sos más rápido que hace un año. Eso vale.",
+      hacer(){ aprender("capitalHum");
+        if(Math.random() < .58){ S.sueldo *= 1.28; animo(6); recordar("Cobró más por hora");
+          return `<p>Lo decís mirando para otro lado y sale mejor de lo que esperabas.</p>
+          <p>Te pagan por hora pero te contratan por lo que resolvés. Cuando mejorás y no
+          actualizás el precio, el que se queda con esa mejora es el otro.</p>`; }
+        animo(-4);
+        return `<p>Te dicen que así no da y que van a "ver".</p>
+        <p>Pediste y no salió. Igual ahora sabés cuánto están dispuestos a pagar, que es
+        información que antes no tenías y no se consigue de otra forma.</p>`; } },
+    { txt:"Buscar otra changa mejor paga", cond: () => S.trabajoTipo === "estudia",
+      sub:"Más plata, menos tiempo para estudiar.",
+      hacer(){ S.sueldo *= 1.33; S.flags.menosFacu = true; animo(-5); recordar("Agarró una changa mejor paga");
+        return `<p>Conseguís algo que paga bastante mejor y come dos tardes más por semana.</p>
+        <p>Estás cambiando plata de hoy por el título de mañana. No es gratis ninguna de las
+        dos, y a esta edad el que se recibe tarde lo paga durante toda la década.</p>`; } },
+    { txt:"Seguir igual y priorizar la facultad", cond: () => S.trabajoTipo === "estudia",
+      sub:"Menos plata ahora, el salto llega antes.",
+      hacer(){ aprender("capitalHum"); animo(3); S.flags.enfocado = true; recordar("Priorizó la facultad");
+        return `<p>Dejás la changa como está y usás las tardes para rendir.</p>
+        <p>Es la inversión más rentable que vas a poder hacer y la única que se siente como no
+        estar haciendo nada. Rinde de golpe, el día que te recibís, y hasta ese día parece que
+        estuviste perdiendo el tiempo.</p>`; } },
   ]
 },
 {
+  /* A los dos años aparece la primera bifurcación grande de la vida laboral, y
+     no es la misma según de dónde saliste: al empleado lo vienen a buscar, al
+     que labura solo le ofrecen dejar de estar solo, al del negocio le ofrecen
+     salir de él, y al que estudia le ofrecen justo lo que puede hacerle dejar
+     la facultad. Elegir acá cambia qué escenas ves el resto de la década. */
   id:"laburo-nuevo", mes:22, ventana:9, prob:.75, cond: () => !!S.trabajo,
-  texto: () => `<p>Te escribe una reclutadora. Otra empresa, más grande, más quilombo,
-  ${pct(rnd(.28,.45))} más de sueldo.</p>
-  <p>Donde estás te tratan bien y ya sabés cómo funciona todo.</p>`,
+  texto: {
+    otro: () => `<p>Te escribe una reclutadora. Otra empresa, más grande, más quilombo,
+    ${pct(rnd(.28,.45))} más de sueldo.</p>
+    <p>Donde estás te tratan bien y ya sabés cómo funciona todo.</p>`,
+    monotributo: () => `<p>El cliente con el que más trabajás te ofrece entrar en relación de
+    dependencia. Sueldo fijo, obra social, aguinaldo.</p>
+    <p>Es ${pct(rnd(.08,.20))} menos de lo que facturás en un mes bueno, y bastante más que lo
+    que facturás en uno malo. Tendrías que soltar a los demás.</p>`,
+    comercio: () => `<p>Te ofrecen un puesto en una empresa del rubro. Horario fijo, sueldo en
+    blanco, ${pct(rnd(.20,.38))} más de lo que sacás del local.</p>
+    <p>Tu viejo se queda solo atrás del mostrador y los dos lo saben.</p>`,
+    estudia: () => `<p>Te ofrecen entrar full time en algo que tiene que ver con lo que estás
+    estudiando. Es casi el doble de lo que juntás con las changas.</p>
+    <p>Son nueve horas por día. La cursada, así, no entra.</p>`,
+  },
   opciones: [
-    { txt:"Aceptar",
+    { txt:"Aceptar", cond: () => S.trabajoTipo === "blanco",
       sub:"Más plata, más presión.",
       hacer(){ S.sueldo *= rnd(1.30,1.45); S.trabajo = "Analista"; animo(-3);
         S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc; recordar("Cambió de trabajo por más plata");
         return `<p>Renunciás un martes. Tu jefe te dice que la puerta queda abierta.</p>
         <p>El sueldo nuevo entra completo y se siente enorme. Los primeros meses vas a laburar
         más de lo que esperabas.</p>`; } },
-    { txt:"Usarla para negociar donde estás",
+    { txt:"Usarla para negociar donde estás", cond: () => S.trabajoTipo === "blanco",
       sub:"Contarlo y ver qué pasa.",
       hacer(){
         if(Math.random() < .5){ S.sueldo *= rnd(1.15,1.25); animo(2); recordar("Usó la oferta para negociar y funcionó");
@@ -1309,7 +1451,89 @@ const HITOS = [
         animo(-5); recordar("Quiso negociar con una oferta y le salió mal");
         return `<p>Te dicen que "así no se hacen las cosas".</p>
         <p>Se enfrió todo. Y la otra empresa, mientras tanto, ya llamó a otra persona.</p>`; } },
-    { txt:"Quedarte donde estás",
+
+    /* --- por tu cuenta: le ofrecen dejar de estar solo --- */
+    { txt:"Aceptar el puesto y soltar los otros clientes",
+      cond: () => S.trabajoTipo === "monotributo",
+      sub:"Menos plata arriba. Mucho menos abajo.",
+      hacer(){ S.sueldo *= rnd(.86,.98); S.trabajoTipo = "blanco"; S.flags.freelance = false;
+        S.trabajo = "Empleado donde era cliente"; aprender("enMano"); animo(6);
+        S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc;
+        recordar("Dejó de laburar por su cuenta y entró en blanco");
+        return `<p>Firmás un lunes. La primera quincena entra sola, sin que tengas que
+        perseguir a nadie.</p>
+        <p>Cobrás menos en los meses buenos y muchísimo más en los malos, que es donde se define
+        una década. Cambiaste techo por piso: dejás de tener el mes de $2 millones y dejás de
+        tener el mes de cero.</p>`; } },
+    { txt:"Seguir por tu cuenta y no depender de uno solo",
+      cond: () => S.trabajoTipo === "monotributo",
+      sub:"Mantenés el techo alto. Y el piso en cero.",
+      hacer(){ animo(2); aprender("diversif"); recordar("Se quedó por su cuenta");
+        return `<p>Le decís que preferís seguir facturando, y que podés tomar más trabajo si
+        hace falta.</p>
+        <p>Te quedaste con el techo alto y con el riesgo entero. Lo importante es lo que hagas
+        ahora: tener un cliente que sea la mitad de tu facturación es exactamente el mismo
+        problema que tener toda la plata en un solo activo, y se arregla igual.</p>`; } },
+
+    /* --- negocio familiar: le ofrecen salir --- */
+    { txt:"Aceptar y dejar el local",
+      cond: () => S.trabajoTipo === "comercio",
+      sub:"Sueldo en blanco. Tu viejo se queda solo.",
+      hacer(){ S.sueldo *= rnd(1.20,1.38); S.trabajoTipo = "blanco"; S.flags.comercio = false;
+        S.trabajo = "Empleado del rubro"; aprender("enMano"); animo(-8);
+        S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc;
+        recordar("Dejó el negocio familiar por un sueldo");
+        return `<p>Se lo decís un domingo. Te dice que hacés bien, y no te mira.</p>
+        <p>Ganás más y ganás algo que no se ve: un ingreso que no depende de que la gente del
+        barrio tenga plata este mes. El local se movía con la economía; tu sueldo, mucho
+        menos.</p>`; } },
+    { txt:"Quedarte en el negocio",
+      cond: () => S.trabajoTipo === "comercio",
+      sub:"Menos plata. Es tuyo.",
+      hacer(){ animo(7); recordar("Se quedó en el negocio familiar");
+        return `<p>Decís que no y seguís abriendo a las nueve.</p>
+        <p>Estás eligiendo algo que en la planilla se ve peor y en la vida se ve mejor. Sabelo
+        igual: lo que sale del mostrador sube y baja con el país, y eso significa que los años
+        en que más necesitás plata son los años en que menos entra.</p>`; } },
+
+    /* --- changas y facultad: la oferta que compite con el título --- */
+    { txt:"Agarrarlo y dejar la facultad",
+      cond: () => S.trabajoTipo === "estudia",
+      sub:"Bastante más plata hoy. Se cierra el salto grande.",
+      hacer(){ S.sueldo *= rnd(1.55,1.85); S.trabajoTipo = "blanco"; S.flags.estudiando = false;
+        S.flags.dejoFacu = true; S.trabajo = "Full time sin terminar la carrera"; animo(4);
+        S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc;
+        recordar("Dejó la facultad por un trabajo full time");
+        return `<p>Arrancás el lunes siguiente. La plata que entra el primer mes es más de la
+        que tuviste nunca.</p>
+        <p>Es una decisión defendible y tiene un costo que no se siente hoy: el salto grande que
+        traía el título ya no va a llegar, y a partir de ahora tu sueldo sube como sube el de
+        todos, de a poco y siempre atrás de los precios.</p>`; } },
+    { txt:"Negociar media jornada",
+      cond: () => S.trabajoTipo === "estudia",
+      sub:"Menos que la oferta, y seguís cursando.",
+      hacer(){
+        if(Math.random() < .5){ S.sueldo *= rnd(1.22,1.42); S.trabajo = "Media jornada y facultad";
+          animo(5); recordar("Negoció media jornada para seguir estudiando");
+          return `<p>Les proponés cinco horas y aceptan, medio sorprendidos de que lo pidieras.</p>
+          <p>Te quedaste con la mitad de la plata y con todo el título. Lo más difícil de estas
+          decisiones no es elegir bien: es darte cuenta de que existe una tercera opción cuando
+          te presentan dos.</p>`; }
+        animo(-4); recordar("Pidió media jornada y no aceptaron");
+        return `<p>Te dicen que el puesto es full time o nada.</p>
+        <p>Preguntar no salió gratis —perdiste la oferta— y tampoco salió tan caro. Lo que no se
+        pide, no se sabe.</p>`; } },
+    { txt:"Decir que no y terminar la carrera",
+      cond: () => S.trabajoTipo === "estudia",
+      sub:"Dos años más de poca plata.",
+      hacer(){ animo(-3); aprender("capitalHum"); S.flags.enfocado = true;
+        recordar("Rechazó un full time para recibirse");
+        return `<p>Le decís que no y volvés a la biblioteca con una sensación rara.</p>
+        <p>Acabás de rechazar casi el doble de lo que ganás, por algo que no existe todavía. Es la
+        apuesta más razonable que vas a hacer en la década y la que peor se siente mientras la
+        estás haciendo.</p>`; } },
+
+    { txt:"Quedarte donde estás", cond: () => S.trabajoTipo === "blanco",
       sub:"Lo conocido tiene su valor.",
       hacer(){ animo(3); recordar("Eligió la estabilidad sobre el aumento");
         return `<p>Le decís que no, con amabilidad.</p>
@@ -1347,10 +1571,31 @@ const HITOS = [
   ]
 },
 {
+  /* La escena que justifica todo el juego: se corta el ingreso. El golpe es el
+     mismo para todos, pero a un monotributista no lo echa nadie y al del
+     negocio familiar tampoco. Cada vida pierde el ingreso a su manera, y sale
+     de ahí con las herramientas que esa vida le dejó. */
   id:"despido", mes:42, ventana:14, prob:.7,
-  texto: () => `<p>Reunión de quince minutos un miércoles. Reestructuración. No es personal,
-  dicen, como si eso ayudara.</p>
-  <p>Tenés ${aire() > 0 ? aire().toFixed(1).replace(".",",") : "0"} meses de aire con lo que hay guardado.</p>`,
+  texto: () => S.trabajoTipo === "monotributo"
+    ? `<p>El cliente más grande te escribe un miércoles: "se nos cortó el presupuesto, gracias
+       por todo". Era más de la mitad de lo que facturabas.</p>
+       <p>No hay preaviso, no hay indemnización, no hay a quién reclamarle. Tenés
+       ${aire() > 0 ? aire().toFixed(1).replace(".",",") : "0"} meses de aire con lo que hay
+       guardado.</p>`
+    : S.trabajoTipo === "comercio"
+    ? `<p>Hace cuatro meses que el local no cubre los costos. Tu viejo lo sabe y no lo dice; vos
+       lo sabés y tampoco.</p>
+       <p>Una tarde de martes, sin un cliente en dos horas, lo hablan. Tenés
+       ${aire() > 0 ? aire().toFixed(1).replace(".",",") : "0"} meses de aire con lo que hay
+       guardado.</p>`
+    : S.trabajoTipo === "estudia"
+    ? `<p>La changa se termina de un día para el otro: cerró el local, se acabó la obra, se
+       acabó. Estás en la mitad de la cursada.</p>
+       <p>Tenés ${aire() > 0 ? aire().toFixed(1).replace(".",",") : "0"} meses de aire con lo
+       que hay guardado.</p>`
+    : `<p>Reunión de quince minutos un miércoles. Reestructuración. No es personal,
+       dicen, como si eso ayudara.</p>
+       <p>Tenés ${aire() > 0 ? aire().toFixed(1).replace(".",",") : "0"} meses de aire con lo que hay guardado.</p>`,
   opciones: [
     { txt:"Tomarte un tiempo y buscar bien",
       sub:"Requiere colchón. Si no lo tenés, se pone feo.",
@@ -1369,14 +1614,37 @@ const HITOS = [
         return `<p>En tres semanas estás trabajando otra vez, por menos plata y en algo que no elegiste.</p>
         <p>Es una decisión razonable. También es la decisión que toma alguien que no tiene margen
         para tomar otra.</p>`; } },
-    { txt:"Arrancar por tu cuenta",
+    { txt:"Arrancar por tu cuenta", cond: () => S.trabajoTipo !== "monotributo",
       sub:"Freelance. Irregular y sin red.",
       hacer(){ S.trabajo = "Freelance"; S.sueldo *= rnd(.55,1.25); S.flags.freelance = true;
+        S.trabajoTipo = "monotributo";
         animo(-1); S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc;
         recordar("Se puso por su cuenta después del despido");
         return `<p>Le escribís a todos los que conocés. Dos te contestan.</p>
         <p>Los meses buenos son mejores que el sueldo. Los malos no existían cuando eras empleado.
         El promedio no te dice nada: lo que importa es si podés bancar los malos.</p>`; } },
+    { txt:"Salir a buscar clientes bajando el precio",
+      cond: () => S.trabajoTipo === "monotributo",
+      sub:"Llenás la agenda rápido. Te quedás ahí.",
+      hacer(){ S.sueldo *= rnd(.62,.80); S.trabajo = "Por mi cuenta"; animo(-6);
+        aprender("cajaVsGan"); recordar("Recuperó clientes bajando el precio");
+        return `<p>En cinco semanas tenés la agenda llena otra vez, a dos tercios de lo que
+        cobrabas.</p>
+        <p>Frenaste la sangría, que era lo urgente. Lo que no se ve todavía: los clientes que
+        entran a precio bajo son los que después no aceptan el precio normal, y ahora tenés el
+        día ocupado con ellos y ningún hueco para buscar mejores.</p>`; } },
+    { txt:"Bajar la persiana y liquidar el stock",
+      cond: () => S.trabajoTipo === "comercio",
+      sub:"Entra plata de una vez. Se termina el negocio.",
+      hacer(){ const caja = S.gastos * rnd(2.6, 4.4);
+        S.pesos += caja; S.detalle.push(["Liquidación del stock", caja]);
+        S.trabajo = null; S.trabajoTipo = "blanco"; S.flags.comercio = false;
+        aprender("liquidez"); animo(-14); recordar("Cerraron el negocio familiar");
+        return `<p>Rematan todo en tres semanas y entregan la llave. Entran ${fmt(caja)} de una
+        sola vez, que es más plata junta de la que viste nunca.</p>
+        <p>Y es plata que ya no genera nada. Un negocio que funciona vale por lo que produce
+        todos los meses; cuando lo liquidás cobrás solo las cosas, nunca el flujo. Por eso el
+        que cierra siempre siente que le dieron poco: es que efectivamente es poco.</p>`; } },
   ]
 },
 {
@@ -1508,14 +1776,27 @@ const HITOS = [
   /* Elegir "changas mientras estudiás" arrancaba cobrando la mitad y no pasaba
      nunca nada: la promesa del salto no existía en ningún lado. Este hito es esa
      promesa, y es lo que hace que el arranque más pobre tenga sentido. */
-  id:"recibirse", mes:52, ventana:14, cond: () => !!S.flags.estudiando,
-  texto: () => `<p>Rendís la última materia un martes a la mañana y salís al pasillo sin saber
-  bien qué hacer con el cuerpo.</p>
-  <p>A las dos semanas ya tenés dos entrevistas de las que antes no te llamaban.</p>`,
+  /* Lo que decidiste en el mes 14 y en el 22 se cobra acá: el que priorizó la
+     facultad se recibe antes y entra mejor, el que agarró la changa que pagaba
+     más llega dos años tarde. Es la única parte del juego donde una decisión
+     temprana tarda cuatro años en mostrar la cara. */
+  id:"recibirse", mes:52, ventana:14,
+  cond: () => !!S.flags.estudiando && (!S.flags.menosFacu || S.mes > 64),
+  texto: () => S.flags.menosFacu
+    ? `<p>Rendís la última materia dos años más tarde de lo que pensabas, entre turnos y
+       changas, un martes a la mañana.</p>
+       <p>Llegaste igual. Tardaste, y esos años los pagaste cobrando poco.</p>`
+    : S.flags.enfocado
+    ? `<p>Rendís la última materia un martes a la mañana y salís al pasillo sin saber bien qué
+       hacer con el cuerpo. Llegaste en término, que casi nadie de tu camada logró.</p>
+       <p>A la semana ya tenés tres entrevistas de las que antes no te llamaban.</p>`
+    : `<p>Rendís la última materia un martes a la mañana y salís al pasillo sin saber
+       bien qué hacer con el cuerpo.</p>
+       <p>A las dos semanas ya tenés dos entrevistas de las que antes no te llamaban.</p>`,
   opciones: [
     { txt:"Tomarte el primer laburo bueno que salga",
       hacer(){ aprender("capitalHum"); lograr("estudioso");
-        S.sueldo *= rnd(1.75, 2.3); S.flags.estudiando = false;
+        S.sueldo *= rnd(1.75, 2.3) * saltoTitulo(); S.flags.estudiando = false;
         S.trabajo = "En lo mío"; S.trabajoTipo = "blanco";
         S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc;
         S.sueldoObjetivo = Math.max(S.sueldoObjetivo, S.sueldo / S.ipc * .95);
@@ -1526,7 +1807,7 @@ const HITOS = [
         revalúa solo con los años.</p>`; } },
     { txt:"Seguir por tu cuenta, ahora con título",
       hacer(){ aprender("capitalHum"); lograr("estudioso");
-        S.sueldo *= rnd(1.5, 2.6); S.flags.estudiando = false; S.flags.freelance = true;
+        S.sueldo *= rnd(1.5, 2.6) * saltoTitulo(); S.flags.estudiando = false; S.flags.freelance = true;
         S.trabajo = "Por mi cuenta"; S.trabajoTipo = "monotributo";
         S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc;
         S.sueldoObjetivo = Math.max(S.sueldoObjetivo, S.sueldo / S.ipc * .95);
@@ -1537,7 +1818,7 @@ const HITOS = [
         abre puertas; la caja la seguís administrando vos.</p>`; } },
     { txt:"Quedarte donde estás por ahora",
       hacer(){ aprender("capitalHum"); lograr("estudioso");
-        S.sueldo *= rnd(1.12, 1.3); S.flags.estudiando = false; animo(-2);
+        S.sueldo *= rnd(1.12, 1.3) * saltoTitulo(); S.flags.estudiando = false; animo(-2);
         recordar("Se recibió y no cambió nada");
         return `<p>Guardás el título en un cajón y seguís con lo que venías haciendo.</p>
         <p>Un título que no se usa vale lo mismo que no tenerlo, con la diferencia de los años
@@ -1931,13 +2212,43 @@ const EVENTOS = [
 },
 {
   id:"bono", repetible:true, peso:1, cond: () => !!S.trabajo,
-  texto: [
-    () => `<p>Bono por objetivos: ${fmt(S.sueldo*1.2)} que no esperabas.</p>`,
-    () => `<p>Cierran un año bueno y reparten. Te tocan ${fmt(S.sueldo*1.2)}.</p>
-    <p>La mitad de la oficina ya lo tiene gastado desde antes de que caiga.</p>`,
-    () => `<p>Bono de retención: te pagan ${fmt(S.sueldo*1.2)} para que no te vayas.</p>
-    <p>Lo cual te dice algo interesante sobre cuánto valés y cuánto te vienen pagando.</p>`,
-  ],
+  texto: {
+    otro: [
+      () => `<p>Bono por objetivos: ${fmt(S.sueldo*1.2)} que no esperabas.</p>`,
+      () => `<p>Cierran un año bueno y reparten. Te tocan ${fmt(S.sueldo*1.2)}.</p>
+      <p>La mitad de la oficina ya lo tiene gastado desde antes de que caiga.</p>`,
+      () => `<p>Bono de retención: te pagan ${fmt(S.sueldo*1.2)} para que no te vayas.</p>
+      <p>Lo cual te dice algo interesante sobre cuánto valés y cuánto te vienen pagando.</p>`,
+    ],
+    monotributo: [
+      () => `<p>Un cliente que te debía tres facturas te transfiere todo junto, sin aviso:
+      ${fmt(S.sueldo*1.2)} un martes a la mañana.</p>`,
+      () => `<p>Te sale un trabajo grande, de esos que aparecen una vez al año, y lo cobrás
+      entero por adelantado: ${fmt(S.sueldo*1.2)}.</p>
+      <p>Es plata de varios meses entrando en un día. La sensación engaña.</p>`,
+      () => `<p>Cerrás un proyecto que venía hace meses. ${fmt(S.sueldo*1.2)} de una vez.</p>
+      <p>Ya sabés cómo sigue: dos meses sin que entre nada, y esta plata tiene que llegar
+      hasta ahí.</p>`,
+    ],
+    comercio: [
+      () => `<p>Diciembre. El local no para en tres semanas y cierran el mes con
+      ${fmt(S.sueldo*1.2)} por encima de lo normal.</p>`,
+      () => `<p>Les entra un pedido grande de un mayorista. Deja ${fmt(S.sueldo*1.2)} limpios,
+      y tu viejo dice que hacía años que no pasaba.</p>`,
+      () => `<p>Un mes redondo, de los que sostienen el año: ${fmt(S.sueldo*1.2)} más que un mes
+      cualquiera.</p>
+      <p>El negocio tiene tres meses buenos y nueve normales. Este fue uno de los tres.</p>`,
+    ],
+    estudia: [
+      () => `<p>Te sale un laburo puntual de dos semanas, bien pago: ${fmt(S.sueldo*1.2)}.</p>`,
+      () => `<p>Sale la beca que habías pedido y no esperabas. ${fmt(S.sueldo*1.2)} de una
+      vez.</p>`,
+      () => `<p>Cubrís las fiestas en un lugar que paga el doble por los feriados.
+      ${fmt(S.sueldo*1.2)} en un mes.</p>
+      <p>Es mucha plata para lo que venías manejando, y esa es exactamente la parte
+      peligrosa.</p>`,
+    ],
+  },
   opciones: [
     { txt:"A dólares, íntegro",
       hacer(){ cobrar(S.sueldo*1.2,"Bono"); const c = comprarUsd(S.sueldo*1.2);
@@ -1982,14 +2293,35 @@ const EVENTOS = [
 },
 {
   id:"freelance", repetible:true, peso:1, cond: () => !!S.trabajo,
-  texto: [
-    () => `<p>Te ofrecen un laburo por afuera, pagado en dólares. Son tres meses de fines de
-    semana ocupados.</p>`,
-    () => `<p>Vuelve a aparecer changa por afuera, en dólares. Ya sabés exactamente cuánto
-    cuesta: tres meses sin sábados.</p>`,
-    () => `<p>Un cliente del exterior te escribe directo, sin intermediarios. Paga en dólares y
-    quiere empezar ya.</p>`,
-  ],
+  texto: {
+    otro: [
+      () => `<p>Te ofrecen un laburo por afuera, pagado en dólares. Son tres meses de fines de
+      semana ocupados.</p>`,
+      () => `<p>Vuelve a aparecer changa por afuera, en dólares. Ya sabés exactamente cuánto
+      cuesta: tres meses sin sábados.</p>`,
+      () => `<p>Un cliente del exterior te escribe directo, sin intermediarios. Paga en dólares y
+      quiere empezar ya.</p>`,
+    ],
+    /* Para el que ya labura por su cuenta, "una changa extra" no es noticia. Lo
+       que sí cambia su vida es cobrar afuera: mismo trabajo, otra moneda. */
+    monotributo: [
+      () => `<p>Te contacta un cliente del exterior. Paga en dólares, a una cuenta afuera, y es
+      bastante más de lo que cobrás acá por lo mismo.</p>
+      <p>Son tres meses con los fines de semana ocupados.</p>`,
+      () => `<p>Vuelve a aparecer trabajo de afuera, en dólares. Ya sabés lo que cuesta: tres
+      meses sin sábados y todo el lío de cobrarlo.</p>`,
+      () => `<p>Te llega el más grande hasta ahora, de afuera y en dólares. Si sale bien, es un
+      cliente que no depende de cómo venga el país.</p>`,
+    ],
+    comercio: [
+      () => `<p>Un proveedor te ofrece llevarle la logística por afuera del local, pagado en
+      dólares. Tres meses de fines de semana ocupados.</p>`,
+      () => `<p>Vuelve la changa de afuera, en dólares. Ya sabés lo que cuesta: tres meses sin
+      sábados, que en un negocio que abre sábado es el doble de caro.</p>`,
+      () => `<p>Te buscan directo para un trabajo puntual, en dólares, sin que tenga nada que
+      ver con el local.</p>`,
+    ],
+  },
   opciones: [
     { txt:"Agarrarlo",
       hacer(){ S.usd += rnd(600,1400); animo(-6); S.flags.dolarizado = true;
@@ -2044,11 +2376,30 @@ const EVENTOS = [
   ]
 },
 {
+  /* Vale es la que sabe de plata. Dónde la conocés depende de dónde laburás:
+     al lado tuyo si tenés escritorio, en la sala de espera de un cliente si
+     laburás solo, del otro lado del mostrador si estás en el negocio. Es la
+     misma persona y el mismo arco. */
   id:"vale-1", peso:2, cond: () => S.mes > 13 && S.gente.vale.etapa === "" && !!S.trabajo,
-  texto: () => `<p>Vale se sienta al lado tuyo. Entró seis meses antes y tiene una cuenta de
-  Excel abierta en el segundo monitor que no es del trabajo.</p>
-  <p>—${S.nombre ? S.nombre + ", ¿" : "¿"}vos tenés la plata en la caja de ahorro? —te pregunta,
-  y hace una mueca cuando le decís que sí—. Mirá, te muestro una cosa.</p>`,
+  texto: {
+    otro: () => `<p>Vale se sienta al lado tuyo. Entró seis meses antes y tiene una cuenta de
+    Excel abierta en el segundo monitor que no es del trabajo.</p>
+    <p>—${S.nombre ? S.nombre + ", ¿" : "¿"}vos tenés la plata en la caja de ahorro? —te pregunta,
+    y hace una mueca cuando le decís que sí—. Mirá, te muestro una cosa.</p>`,
+    monotributo: () => `<p>Te cruzás con Vale esperando que te reciban en un cliente. También
+    factura por su cuenta, hace años, y está anotando algo en una planilla en el teléfono.</p>
+    <p>—${S.nombre ? S.nombre + ", ¿" : "¿"}vos qué hacés con lo que cobrás? ¿Lo dejás en la
+    cuenta? —te pregunta, y hace una mueca cuando le decís que sí—. Mirá, te muestro una
+    cosa.</p>`,
+    comercio: () => `<p>Vale trae la mercadería del distribuidor una vez por semana. Maneja los
+    números de cuatro proveedores y de su propia casa.</p>
+    <p>—${S.nombre ? S.nombre + ", ¿" : "¿"}la plata del negocio la dejan quieta hasta pagar?
+    —te pregunta, y hace una mueca cuando le decís que sí—. Mirá, te muestro una cosa.</p>`,
+    estudia: () => `<p>Vale hace la misma changa que vos y estudia de noche. Tiene una planilla
+    abierta en el teléfono que no es de la facultad.</p>
+    <p>—${S.nombre ? S.nombre + ", ¿" : "¿"}vos tenés la plata en la caja de ahorro? —te pregunta,
+    y hace una mueca cuando le decís que sí—. Mirá, te muestro una cosa.</p>`,
+  },
   opciones: [
     { txt:"Escucharla",
       hacer(){ aprender("tasaReal"); avanzaArco("vale","cerca");
@@ -2070,11 +2421,21 @@ const EVENTOS = [
 },
 {
   id:"vale-2", peso:2, cond: () => (enArco("vale","cerca") || enArco("vale","lejos")) && !!S.trabajo,
-  texto: () => `<p>Vale renuncia. Se va a una empresa más grande por bastante más plata.</p>
-  <p>El último día te cuenta cuánto le ofrecieron y te da un poco de impresión: es casi el
-  doble de lo que cobrás vos por hacer casi lo mismo.</p>`,
+  texto: {
+    otro: () => `<p>Vale renuncia. Se va a una empresa más grande por bastante más plata.</p>
+    <p>El último día te cuenta cuánto le ofrecieron y te da un poco de impresión: es casi el
+    doble de lo que cobrás vos por hacer casi lo mismo.</p>`,
+    monotributo: () => `<p>Vale entra en una empresa grande y deja de facturar por su cuenta.</p>
+    <p>Te cuenta cuánto le ofrecieron y te da un poco de impresión: es casi el doble de lo que
+    sacás vos por hacer casi lo mismo, y encima le pagan las vacaciones.</p>`,
+    comercio: () => `<p>Vale deja el reparto: la contrató una de las empresas a las que le
+    llevaba mercadería.</p>
+    <p>Te cuenta cuánto le ofrecieron y te da un poco de impresión: es casi el doble de lo que
+    sale del mostrador en un mes bueno.</p>`,
+  },
   opciones: [
     { txt:"Pedir un aumento con ese número en la cabeza",
+      cond: () => S.trabajoTipo === "blanco" || S.trabajoTipo === "estudia",
       hacer(){ avanzaArco("vale","afuera");
         if(Math.random() < .42){ S.sueldo *= rnd(1.12,1.24); animo(4);
           return `<p>Pedís y te dan una parte.</p>
@@ -2084,15 +2445,24 @@ const EVENTOS = [
         return `<p>Te dicen que "los rangos son los rangos".</p>
         <p>No te lo dieron, pero ahora sabés algo que antes no sabías: cuánto vale lo que
         hacés. Ese dato no se te va a borrar.</p>`; } },
+    { txt:"Salir a buscar quién paga eso",
+      cond: () => S.trabajoTipo === "monotributo" || S.trabajoTipo === "comercio",
+      sub:"Ahora sabés cuánto vale lo que hacés.",
+      hacer(){ avanzaArco("vale","afuera"); S.flags.buscando = true; aprender("capitalHum");
+        return `<p>Esa noche hacés una lista de lugares donde podrías estar cobrando eso.</p>
+        <p>El dato más caro de conseguir en este país es cuánto se paga por lo que hacés, porque
+        nadie lo publica y a casi nadie le gusta contarlo. Lo conseguiste gratis y de casualidad,
+        que es como se consigue siempre.</p>`; } },
     { txt:"Empezar a mandar currículums",
+      cond: () => S.trabajoTipo === "blanco" || S.trabajoTipo === "estudia",
       hacer(){ avanzaArco("vale","afuera"); S.flags.buscando = true; aprender("capitalHum");
         return `<p>Esa misma semana actualizás el perfil.</p>
         <p>En este país el aumento grande casi nunca te lo da tu empresa: te lo da la que te
         viene a buscar. Y para que te vengan a buscar tenés que estar visible.</p>`; } },
     { txt:"Alegrarte por ella y seguir",
       hacer(){ avanzaArco("vale","afuera"); animo(2);
-        return `<p>Le hacés un regalo con la gente de la oficina y se despiden bien.</p>
-        <p>No todo tiene que ser una jugada. A veces un compañero se va y está bien.</p>`; } },
+        return `<p>Se despiden bien, con un regalo y una promesa de escribirse.</p>
+        <p>No todo tiene que ser una jugada. A veces a alguien le va bien y está bien.</p>`; } },
   ]
 },
 {
@@ -2939,18 +3309,32 @@ const EVENTOS = [
   ]
 },
 {
+  /* Dejar de cobrar por lo que hacés y empezar a cobrar por lo que hacen otros.
+     Al empleado se lo ofrecen; el que labura solo tiene que decidirlo él y
+     poner la plata; al del negocio le llega como la chance de sacarse el
+     mostrador de encima. El costo es el mismo en los tres: dejás de hacer lo
+     que te gustaba. */
   id:"jefatura", peso:2, cond: () => !!S.trabajo && S.mes > 66 && !S.flags.jefe,
-  texto: () => `<p>Te ofrecen manejar un equipo. Cuatro personas, más plata, y una parte del
-  trabajo que te gusta pasa a hacerla otro.</p>`,
+  texto: {
+    otro: () => `<p>Te ofrecen manejar un equipo. Cuatro personas, más plata, y una parte del
+    trabajo que te gusta pasa a hacerla otro.</p>`,
+    monotributo: () => `<p>Tenés más trabajo del que te entra en la semana y venís rechazando
+    cosas hace tres meses.</p>
+    <p>Podrías tomar a alguien: le pagás ${fmt(S.sueldo*.42)} por mes desde el primer día,
+    cobre el cliente o no.</p>`,
+    comercio: () => `<p>Aparece la chance de poner un encargado en el local y dedicarte a traer
+    proveedores y clientes nuevos.</p>
+    <p>Un sueldo más, fijo, todos los meses. Y vos dejás de estar atrás del mostrador.</p>`,
+  },
   opciones: [
-    { txt:"Aceptar",
+    { txt:"Aceptar", cond: () => S.trabajoTipo !== "monotributo" && S.trabajoTipo !== "comercio",
       hacer(){ S.sueldo *= rnd(1.18,1.32); S.flags.jefe = true; animo(-4);
         recordar("Aceptó manejar un equipo");
         return `<p>Arrancás en dos semanas con una reunión de una hora que no entendés bien
         para qué es.</p>
         <p>El sueldo sube de una vez; lo que se va son las tardes tranquilas. Es un cambio de
         oficio disfrazado de ascenso, y no siempre es el que uno quiere.</p>`; } },
-    { txt:"Negociar hacerlo a medias",
+    { txt:"Negociar hacerlo a medias", cond: () => S.trabajoTipo !== "monotributo" && S.trabajoTipo !== "comercio",
       hacer(){
         if(Math.random() < .45){ S.sueldo *= rnd(1.10,1.20); S.flags.jefe = true; animo(2);
           recordar("Negoció un rol mixto");
@@ -2958,7 +3342,36 @@ const EVENTOS = [
           <p>Casi nunca te van a ofrecer el puesto que querés; a veces te lo podés escribir vos.</p>`; }
         animo(-3); recordar("Quiso un rol mixto y no se pudo");
         return `<p>Te dicen que el puesto es el que es. Lo tomás o lo dejás.</p>`; } },
+
+    { txt:"Tomar a alguien y pasarle la mitad del trabajo",
+      cond: () => S.trabajoTipo === "monotributo" || S.trabajoTipo === "comercio",
+      sub:"Un gasto fijo nuevo contra un ingreso que no lo es.",
+      hacer(){ S.flags.jefe = true; aprender("gastoFijo");
+        if(Math.random() < .55){ S.sueldo *= rnd(1.30,1.55); animo(-5);
+          recordar("Tomó a alguien y le salió bien");
+          return `<p>A los cuatro meses ya no hacés vos la mitad de las cosas, y entra bastante
+          más de lo que le pagás.</p>
+          <p>Salió bien y conviene saber por qué era arriesgado: cambiaste un ingreso que sube y
+          baja por un gasto que no baja nunca. Cuando eso funciona se llama crecer; cuando el
+          mes viene flojo, el sueldo del otro sale igual y sale de tu bolsillo.</p>`; }
+        S.gastos *= 1.12; S.gastosPiso *= 1.12; S.sueldo *= rnd(.92,1.04); animo(-9);
+        recordar("Tomó a alguien y no le cerró");
+        return `<p>Entre enseñarle, revisarle y rehacerle cosas, trabajás lo mismo que antes y
+        te queda menos.</p>
+        <p>Sumaste un gasto fijo a un ingreso variable, que es la forma más común de fundir algo
+        que funcionaba. El error no fue tomar a alguien: fue tomarlo antes de tener con qué
+        bancar seis meses malos.</p>`; } },
+    { txt:"Seguir haciéndolo todo vos",
+      cond: () => S.trabajoTipo === "monotributo" || S.trabajoTipo === "comercio",
+      sub:"No arriesgás nada. Tampoco crece.",
+      hacer(){ animo(-2); aprender("capitalHum"); recordar("Siguió haciéndolo todo solo");
+        return `<p>Seguís rechazando lo que no te entra en la semana.</p>
+        <p>No perdés plata y le pusiste un techo a lo que podés ganar: es exactamente la cantidad
+        de horas que tenés. Todo negocio que depende de una sola persona vale mucho menos de lo
+        que parece, justamente por eso.</p>`; } },
+
     { txt:"Decir que no",
+      cond: () => S.trabajoTipo !== "monotributo" && S.trabajoTipo !== "comercio",
       hacer(){ animo(4); recordar("Rechazó manejar gente");
         return `<p>Le decís que preferís seguir haciendo lo tuyo.</p>
         <p>Rechazar un ascenso está mal visto y a veces es lo más sano que podés hacer. El
