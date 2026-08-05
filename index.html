@@ -98,6 +98,20 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
 .btn.ghost{background:none; color:var(--muted); border:1px solid var(--line); font-weight:500}
 .btn.ghost:hover{color:var(--text); border-color:#4a4038}
 
+/* ---------- arquetipo del final ---------- */
+.arq{border:1px solid rgba(217,164,65,.34); background:rgba(217,164,65,.05);
+  border-radius:14px; padding:18px; margin:20px 0 4px}
+.arq-cab{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim);
+  margin-bottom:7px}
+.arq-n{font-family:Georgia,serif; font-size:25px; line-height:1.15; color:var(--oro);
+  margin-bottom:9px}
+.arq-d{font-size:15px; line-height:1.55; color:#ddd4ca}
+.arq-btn{margin-top:14px; background:none; border:1px solid var(--line); color:var(--muted);
+  border-radius:9px; padding:9px 13px; font-family:inherit; font-size:12.5px; cursor:pointer;
+  text-align:left; max-width:100%; word-break:break-word}
+.arq-btn:hover{border-color:var(--oro); color:var(--oro)}
+.arq-btn.listo{border-color:var(--verde); color:var(--verde)}
+
 /* ---------- final ---------- */
 .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0}
 .stat{background:var(--card2); border-radius:10px; padding:13px}
@@ -3539,6 +3553,62 @@ function activarGrafico(){
 }
 
 /* ==========================================================================
+   ARQUETIPOS
+   El título con el que terminás. Se evalúan de arriba hacia abajo y gana el
+   primero que da: los de arriba son los raros y específicos, los de abajo
+   agarran todo lo demás. Es lo que hace que alguien mande el juego a un amigo,
+   así que la gracia importa tanto como la exactitud.
+   ========================================================================== */
+const ARQUETIPOS = [
+  { n:"El fundido", d:"Tocó fondo antes de los treinta y volvió al cuarto de siempre.",
+    cond:(x) => x.corte === "fondo" },
+  { n:"El quemado", d:"Llegó con la cuenta en orden y la cabeza no.",
+    cond:(x) => x.corte === "quiebre" },
+  { n:"El concursado", d:"Los números no daban de ninguna manera, y en algún momento hubo que decirlo.",
+    cond:(x) => x.corte === "concurso" },
+
+  { n:"El millonario infeliz", d:"Juntó como nadie y no se acuerda de un solo domingo.",
+    cond:(x) => x.aire >= 18 && x.animo < 42 },
+  { n:"El que vivió", d:"No juntó casi nada y tiene las mejores anécdotas de la mesa.",
+    cond:(x) => x.animo >= 72 && x.aire < 6 },
+  { n:"El tacaño arrepentido", d:"Dijo que no a todo y ahora tiene plata y una lista de cosas que no hizo.",
+    cond:(x) => x.aire >= 12 && !S.flags.viajo && x.animo < 55 },
+  { n:"El escarmentado", d:"Le pasó lo de la mesa de inversión y todavía lo cuenta en los asados.",
+    cond:(x) => !!S.logros.escarmentado && x.aire < 10 },
+  { n:"El colchón abajo del colchón", d:"Terminó con todo en pesos en la caja de ahorro. Todo.",
+    cond:(x) => x.total > 0 && x.rep.pesos > .80 },
+  { n:"El dolarizado de manual", d:"Verde, todo verde, y no quiere escuchar otra cosa.",
+    cond:(x) => x.total > 0 && x.rep.dolar > .70 },
+  { n:"El que le creyó al país", d:"Casi todo en bonos argentinos. Tuvo estómago.",
+    cond:(x) => x.total > 0 && x.rep.bono > .55 },
+  { n:"El equilibrista", d:"Repartió en todo y no ganó ninguna charla de asado. Le fue bien igual.",
+    cond:(x) => x.reparto >= 4 && x.aire >= 8 },
+  { n:"El adivino", d:"Le acertó a más de la mitad de sus pronósticos. Que no se le suba.",
+    cond:(x) => S.pronosticos.length >= 4 && x.aciertos / S.pronosticos.length > .5 },
+  { n:"El que nunca la vio", d:"Cero pronósticos acertados en diez años. Un récord difícil.",
+    cond:(x) => S.pronosticos.length >= 4 && x.aciertos === 0 },
+  { n:"El sobreviviente", d:"Se pasó media década debiendo y llegó al final igual.",
+    cond:(x) => x.rojo >= 55 },
+  { n:"El de la familia", d:"Estuvo cuando hizo falta, y eso le costó plata y no le importó.",
+    cond:(x) => !!S.logros.buenPibe && x.animo >= 55 },
+  { n:"El estudioso", d:"Entendió cómo funciona todo esto mejor que la mayoría.",
+    cond:(x) => x.conceptos >= 17 },
+  { n:"El que zafó", d:"Le pegaron de todos lados y sigue de pie.",
+    cond:(x) => S.golpes >= 7 && x.aire >= 4 },
+  { n:"La tortuga", d:"Nada brillante, nada estúpido, diez años seguidos. Es más difícil de lo que parece.",
+    cond:(x) => x.aire >= 10 && x.animo >= 55 },
+  { n:"El que llegó justo", d:"Todos los meses cerraron. Ninguno sobró.",
+    cond:(x) => x.aire < 4 },
+  { n:"El del montón", d:"Ni una fortuna ni un desastre: la mayoría termina más o menos así.",
+    cond:() => true },
+];
+
+function arquetipo(datos){
+  return ARQUETIPOS.find(a => { try { return a.cond(datos); } catch(e){ return false; } })
+      || ARQUETIPOS[ARQUETIPOS.length - 1];
+}
+
+/* ==========================================================================
    FINAL
    ========================================================================== */
 function pantallaFinal(){
@@ -3611,6 +3681,20 @@ function pantallaFinal(){
   const nAprendidos = aprendidos.length, totalConceptos = entradas.length;
   const logrados = Object.entries(LOGROS).filter(([id]) => S.logros[id] != null);
   const aciertos = S.pronosticos.filter(x => x.acerto).length;
+
+  /* Con qué te quedás cuando alguien te pregunta cómo te fue. */
+  const vals = valores(), totalCart = totalCartera();
+  const rep = {};
+  Object.keys(vals).forEach(k => rep[k] = totalCart > 0 ? vals[k] / totalCart : 0);
+  const arq = arquetipo({
+    corte: S.finTemprano ? S.finTemprano.id : "",
+    aire: a, animo: animoProm, rojo: S.mesesEnRojo, aciertos,
+    conceptos: nAprendidos, total: totalCart, rep,
+    reparto: Object.values(rep).filter(v => v >= .08).length,
+  });
+  const titular = `${S.nombre ? S.nombre + ", " : ""}${S.edad} años · ${arq.n}` +
+    ` — ${aireTexto(a)} meses de aire, ${nAprendidos} de ${totalConceptos} ideas` +
+    `${S.pronosticos.length ? ", " + aciertos + " de " + S.pronosticos.length + " pronósticos" : ""}.`;
   const col = sumarAColeccion();
   const totalLogros = Object.keys(LOGROS).length;
   const yaSabidos = Object.keys(col.col.conceptos).length;
@@ -3622,6 +3706,13 @@ function pantallaFinal(){
       : "Diez años después · " + S.edad + " años")}</div>
     <h1>${titulo}</h1>
     <div class="texto serif">${epilogo}</div>
+
+    <div class="arq">
+      <div class="arq-cab">Terminaste como</div>
+      <div class="arq-n">${arq.n}</div>
+      <div class="arq-d">${arq.d}</div>
+      <button class="arq-btn" id="compartir">Copiar para compartir</button>
+    </div>
 
     ${graficoPatrimonio()}
     <p class="graf-cap">Tu patrimonio mes a mes, en pesos de ${ANIO_INICIAL} — descontada la
@@ -3740,6 +3831,25 @@ function pantallaFinal(){
   </div>`;
   borrarGuardado();
   activarGrafico();
+  const $comp = document.getElementById("compartir");
+  if($comp) $comp.onclick = async () => {
+    const linea = titular + " · Fin de Mes";
+    let ok = false;
+    try { await navigator.clipboard.writeText(linea); ok = true; }
+    catch(e){
+      /* En un iframe sin permiso de portapapeles la API tira. El textarea
+         temporal con execCommand sigue andando en ese caso. */
+      try {
+        const t = document.createElement("textarea");
+        t.value = linea; t.style.position = "fixed"; t.style.opacity = "0";
+        document.body.appendChild(t); t.select();
+        ok = document.execCommand("copy");
+        document.body.removeChild(t);
+      } catch(e2){}
+    }
+    $comp.textContent = ok ? "Copiado" : linea;
+    $comp.classList.add("listo");
+  };
   document.getElementById("otra").onclick = pantallaInicio;
 }
 

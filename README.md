@@ -257,6 +257,24 @@ predecir de una forma que ningún cartel de texto va a lograr.
 Es además la única interacción del juego con una forma distinta: el 92% de las pantallas son
 una escena o su consecuencia, y esto rompe esa monotonía una vez por año.
 
+## Con qué terminás
+
+Además del epílogo, el final te da un **arquetipo**: el título con el que te quedás cuando
+alguien te pregunta cómo te fue. Hay veinte y se evalúan del más específico al más genérico.
+
+> **El millonario infeliz** — Juntó como nadie y no se acuerda de un solo domingo.
+>
+> **El que vivió** — No juntó casi nada y tiene las mejores anécdotas de la mesa.
+>
+> **El colchón abajo del colchón** — Terminó con todo en pesos en la caja de ahorro. Todo.
+>
+> **La tortuga** — Nada brillante, nada estúpido, diez años seguidos. Es más difícil de lo
+> que parece.
+
+Debajo hay un botón que copia la línea para mandarla: *"Mateo, 32 años · El millonario
+infeliz — 21 meses de aire, 15 de 22 ideas, 3 de 9 pronósticos."* Eso es lo que hace que
+alguien pase el juego a un amigo.
+
 ## La colección
 
 Los conceptos y logros **no se reinician** al empezar otra vida: se acumulan en el
