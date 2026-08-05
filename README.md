@@ -105,10 +105,30 @@ Y enseña algo que el juego no decía: **la forma de tu ingreso importa tanto co
 El monotributista cobra 24% más que el empleado y termina peor en casi todos los casos: el
 aguinaldo es un mes de sueldo por año, la indemnización es el colchón que no tuviste que
 juntar, y un mes flojo no lo cubre nadie. Medido sobre las veinte combinaciones, llegar a
-los diez años va del 18% al 63% según cómo arranques.
+los diez años va del 20% al 78% según cómo arranques.
 
 Antes de todo eso hay una pantalla que pregunta tu nombre, y aparece después en boca de los
 personajes y en el epílogo.
+
+## Lo que elegís al principio te lleva por otro lado
+
+Elegir el arranque no cambiaba solamente los números iniciales: ahora **abre escenas que
+las otras partidas no ven**. Cada camino tiene entre dos y tres situaciones propias, y son
+las que le enseñan a ese camino lo que ese camino tiene para enseñar.
+
+| Arranque | Lo que te pasa a vos y a nadie más | Qué te deja |
+|---|---|---|
+| Monotributista | Facturaste el mejor mes del año y cobrás a 90 días | Facturar no es cobrar: el que trabaja solo se funde por el tiempo entre las dos cosas |
+| Negocio familiar | Vendiste bien y reponer esa mercadería salió más caro | Costo de reposición: la ganancia se mide contra lo que va a costar volver a tenerlo |
+| Empleado en blanco | Te ofrecen 42% más en mano, todo en negro | Lo que no ves del sueldo: obra social, aguinaldo, indemnización, historial crediticio |
+| Changas y facultad | Te recibís y el sueldo salta entre 1,75× y 2,3× | El capital humano es lo único que la inflación no licúa |
+| Vivís solo | El costo fijo que no se divide, y un problema chico un viernes a la noche | Bajar un gasto fijo rinde más que cualquier inversión; y hay urgencias que solo se pagan con plata líquida |
+| Compartido | Se va un compañero y el alquiler sigue igual | Compartir baja el costo y suma un riesgo que no estaba en la cuenta |
+| Del interior | Un casamiento allá, y la oferta de volverte | La distancia se paga todos los años; lo que define cuánto guardás no es el sueldo, es la resta |
+| En pareja | Los suegros, y la charla de plata que nunca tuvieron | Dos economías que no se hablan son dos problemas, no uno |
+
+Medido sobre 40 partidas por combinación, las veinte reciben sus escenas propias entre el
+80% y el 100% de las veces.
 
 ## La escalera
 
@@ -156,7 +176,7 @@ rebalancear por rebalancear cuesta — y eso también es parte de la lección.
 
 ## Conceptos y logros
 
-No hay tutorial ni glosario para leer al principio. Cada uno de los **22 conceptos** se
+No hay tutorial ni glosario para leer al principio. Cada uno de los **26 conceptos** se
 desbloquea el mes exacto en que te pasa, y recién ahí se te nombra lo que acabás de vivir:
 la licuación aparece cuando cerrás una paritaria por debajo de la inflación, la tasa real
 el mes que tu plazo fijo rinde menos que los precios, el riesgo de contraparte cuando le
@@ -198,13 +218,17 @@ aprovechan para saber que es la segunda vez ("otra vez", "la tercera elección d
 adulta"). Así la repetición deja de ser un bache y pasa a ser continuidad.
 
 El bajón anímico además **escala**: la primera vez es cansancio, la segunda es la cuenta de
-todos los meses que venís empujando, la tercera ya no es un bajón sino cómo estás.
+todos los meses que venís empujando, la tercera ya no es un bajón sino cómo estás. Tiene
+cinco versiones porque es la escena que más vuelve — es la red que evita el final por
+quiebre, así que no se puede espaciar sin romper el juego. Se probó: llevar su espera de 7
+a 11 meses bajó el texto repetido pero subió el quiebre del 13% al 53% en manos de un
+jugador que decide bien. Se volvió atrás y se resolvió escribiendo más variantes.
 
 Medido sobre 400 partidas, pantallas que muestran texto ya leído:
 
 ```
 antes de las variantes   26 de 66   (39%)
-después                 1,5 de 62   ( 2%)
+después                 2,4 de 52   ( 5%)
 ```
 
 ## La gente que vuelve
@@ -272,7 +296,7 @@ alguien te pregunta cómo te fue. Hay veinte y se evalúan del más específico 
 > que parece.
 
 Debajo hay un botón que copia la línea para mandarla: *"Mateo, 32 años · El millonario
-infeliz — 21 meses de aire, 15 de 22 ideas, 3 de 9 pronósticos."* Eso es lo que hace que
+infeliz — 21 meses de aire, 15 de 26 ideas, 3 de 9 pronósticos."* Eso es lo que hace que
 alguien pase el juego a un amigo.
 
 ## La colección
@@ -282,7 +306,7 @@ navegador. Al final de cada partida ves cuántos llevás de todos, cuáles fuero
 esta vez, y cuál fue tu mejor aire histórico.
 
 Ahí está la razón concreta para volver a jugar. Una partida típica desbloquea entre 14 y
-18 de los 22 conceptos; llegar a los 22 lleva tres o cuatro vidas, porque los que faltan
+20 de los 26 conceptos; llegar a los 26 lleva tres o cuatro vidas, porque los que faltan
 solo aparecen si tomás decisiones que todavía no tomaste.
 
 ## El gráfico
@@ -310,18 +334,15 @@ era la jugada óptima. Ahora el saldo de la cuenta solo evita que la falta de pl
 destruya; lo único que levanta el ánimo son las decisiones — viajar, la gente, la terapia,
 moverse. Guardar todo diez años y no vivir nada termina en quiebre.
 
-Medido con un jugador que prueba cada opción y se queda con la mejor, contra uno que elige
-al azar:
-
 Probado con bots que prueban cada opción y se quedan con la mejor, con dos criterios
-distintos:
+distintos, contra uno que elige al azar:
 
 | | al azar | equilibrado | ahorrador |
 |---|---|---|---|
-| Meses de aire (mediana) | 5,2 | 5,9 | **23,7** |
-| Llegaste con aire | 0% | 8% | 1% |
-| Con plata y cansado | 1% | 4% | **47%** |
-| Quiebre o tocar fondo | 47% | 7% | 6% |
+| Meses de aire (mediana) | 4,4 | 6,6 | **24,7** |
+| Llegaste con aire | 0% | 11% | 1% |
+| Con plata y cansado | 1% | 13% | **50%** |
+| Quiebre o tocar fondo | 60% | 10% | 8% |
 
 Lo importante es la última columna: **el que optimiza solo la plata termina rico y roto casi
 la mitad de las veces.** Ninguna estrategia miope llega al mejor final, y esa es exactamente
@@ -355,12 +376,13 @@ La década puede cortarse antes de los diez años, y no como castigo por jugar m
 - **Tocar fondo.** Sin trabajo, sin crédito y sin colchón para bancar la espera.
 - **Insolvencia.** Cuando lo que debés, contando cuotas, supera lo que podés pagar.
 
-Sobre 700 partidas jugadas al azar, el 71% llega a los diez años, 19% termina en quiebre y
-9% tocando fondo. Jugando con la cabeza esos números bajan bastante.
+Sobre 300 partidas jugadas al azar, el 44% llega a los diez años, 50% termina en quiebre y
+6% tocando fondo. Decidiendo con la cabeza el quiebre baja al 8-10%, que es lo que tiene
+que pasar: el juego es duro con el que no mira, no con el que sí.
 
 ## Estado
 
-Prototipo, 59 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
+Prototipo, 69 escenas. La pregunta que tiene que contestar es una sola: **¿dan ganas de
 jugar otra partida?** Si la respuesta es no, nada del resto importa.
 
 La consecuencia de lo que elegís aparece **debajo de la opción, en la misma pantalla**, en

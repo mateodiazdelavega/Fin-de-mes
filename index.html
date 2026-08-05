@@ -408,7 +408,13 @@ function nuevaPartida(origen){
 /* Escenas que tienen que estar disponibles en toda vida: las que sostienen el
    ritmo del juego (quedarte sin laburo, el bajón, las elecciones) y los arcos de
    los personajes, que se romperían si faltara un capítulo del medio. */
-const SIEMPRE = new Set(["bajon","volver-a-laburar","eleccion","pre-eleccion","emergencia"]);
+/* Las escenas de camino van acá porque ya están filtradas por su `cond`: solo
+   aparecen si elegiste ese arranque. Si además entraran en el sorteo del
+   catálogo, un tercio de las veces elegir "monotributista" no te daría ninguna
+   escena propia y la decisión inicial no significaría nada. */
+const SIEMPRE = new Set(["bajon","volver-a-laburar","eleccion","pre-eleccion","emergencia",
+  "cobro-90","reponer","contratado","volver-al-pueblo","companero-se-va","suegros",
+  "vivir-solo","solo-sin-red"]);
 
 /* Los arcos se sortean enteros, no escena por escena: o esa persona está en tu
    vida o no está. Si Pedro no aparece nunca, esa partida se siente distinta de
@@ -475,6 +481,9 @@ const CONCEPTOS = {
   cicloElec:   { n:"Riesgo político", t:"Antes de una elección todos los activos del país cotizan con miedo, porque nadie sabe qué viene. No se gana adivinando el resultado: se gana estando parado de una forma que sobreviva a cualquiera de los dos." },
   nivelVida:   { n:"Inflación de estilo de vida", t:"Cada aumento se convierte en más gasto en un par de años sin que lo decidas: cambiás el celular, salís más, dejás de mirar algunos precios. Por eso el que gana el triple que hace diez años sigue llegando justo. Lo que define cuánto ahorrás no es cuánto entra, es la distancia entre lo que entra y lo que gastás." },
   concentr:    { n:"Concentración", t:"Poner mucho en una sola cosa. Cuando sale bien parece visión; cuando sale mal parece obvio que era una locura. Es la misma decisión en los dos casos — lo único que cambió fue la suerte." },
+  cajaVsGan:   { n:"Facturar no es cobrar", t:"Podés tener el mejor mes de tu vida y no poder pagar el alquiler, porque la factura vence a 90 días y el alquiler vence el 10. El que trabaja por su cuenta no se funde por ganar poco: se funde por el tiempo que hay entre que trabaja y que cobra. Ese tiempo hay que financiarlo, y financiarlo cuesta." },
+  costoRepo:   { n:"Costo de reposición", t:"Vendiste a $10 lo que te costó $6 y parece que ganaste $4. Pero reponer esa misma unidad hoy sale $9. Ganaste $1, no $4, y si repartís los otros $3 te estás comiendo el stock sin darte cuenta. Con inflación, la ganancia real no se mide contra lo que pagaste: se mide contra lo que te va a costar volver a tenerlo." },
+  enMano:      { n:"Lo que no ves del sueldo", t:"En negro cobrás más hoy. Lo que no cobrás es la obra social, los aportes, el aguinaldo, las vacaciones pagas, la indemnización y la posibilidad de que un banco te preste. Un 40% más en mano suele ser menos que lo mismo en blanco — solo que la diferencia aparece recién el día que algo sale mal." },
 };
 
 /* ==========================================================================
@@ -1496,6 +1505,66 @@ const HITOS = [
   ]
 },
 {
+  /* Elegir "changas mientras estudiás" arrancaba cobrando la mitad y no pasaba
+     nunca nada: la promesa del salto no existía en ningún lado. Este hito es esa
+     promesa, y es lo que hace que el arranque más pobre tenga sentido. */
+  id:"recibirse", mes:52, ventana:14, cond: () => !!S.flags.estudiando,
+  texto: () => `<p>Rendís la última materia un martes a la mañana y salís al pasillo sin saber
+  bien qué hacer con el cuerpo.</p>
+  <p>A las dos semanas ya tenés dos entrevistas de las que antes no te llamaban.</p>`,
+  opciones: [
+    { txt:"Tomarte el primer laburo bueno que salga",
+      hacer(){ aprender("capitalHum"); lograr("estudioso");
+        S.sueldo *= rnd(1.75, 2.3); S.flags.estudiando = false;
+        S.trabajo = "En lo mío"; S.trabajoTipo = "blanco";
+        S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc;
+        S.sueldoObjetivo = Math.max(S.sueldoObjetivo, S.sueldo / S.ipc * .95);
+        animo(15); recordar("Se recibió y entró en lo suyo");
+        return `<p>Empezás en dos semanas, cobrando más del doble.</p>
+        <p>Cuatro años de entrar poco y salir tarde se pagaron de una vez. Lo que sabés hacer es
+        el único activo que la inflación no puede licuar, que nadie te puede robar y que se
+        revalúa solo con los años.</p>`; } },
+    { txt:"Seguir por tu cuenta, ahora con título",
+      hacer(){ aprender("capitalHum"); lograr("estudioso");
+        S.sueldo *= rnd(1.5, 2.6); S.flags.estudiando = false; S.flags.freelance = true;
+        S.trabajo = "Por mi cuenta"; S.trabajoTipo = "monotributo";
+        S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc;
+        S.sueldoObjetivo = Math.max(S.sueldoObjetivo, S.sueldo / S.ipc * .95);
+        animo(12); recordar("Se recibió y salió por su cuenta");
+        return `<p>Te hacés monotributista y salís a buscar clientes con el título abajo del
+        brazo.</p>
+        <p>Vas a ganar más que en relación de dependencia y vas a tener meses en cero. El título
+        abre puertas; la caja la seguís administrando vos.</p>`; } },
+    { txt:"Quedarte donde estás por ahora",
+      hacer(){ aprender("capitalHum"); lograr("estudioso");
+        S.sueldo *= rnd(1.12, 1.3); S.flags.estudiando = false; animo(-2);
+        recordar("Se recibió y no cambió nada");
+        return `<p>Guardás el título en un cajón y seguís con lo que venías haciendo.</p>
+        <p>Un título que no se usa vale lo mismo que no tenerlo, con la diferencia de los años
+        que costó. La plata no aparece por recibirse: aparece por cambiar algo después.</p>`; } },
+  ]
+},
+{
+  id:"volverse", mes:70, ventana:20, prob:.7, cond: () => !!S.flags.lejos,
+  texto: () => `<p>Te ofrecen algo en tu ciudad. Es menos plata, pero allá el alquiler es la
+  mitad y tu vieja está a diez cuadras.</p>
+  <p>Hace ${Math.floor(S.mes/12)} años que te fuiste.</p>`,
+  opciones: [
+    { txt:"Volverte",
+      hacer(){ S.sueldo *= .74; S.gastos *= .62; S.gastosPiso *= .62;
+        S.flags.lejos = false; animo(17); recordar("Se volvió a su ciudad");
+        return `<p>Cargás todo en una camioneta y hacés el viaje al revés.</p>
+        <p>Cobrás bastante menos y te sobra más, porque lo que define cuánto podés guardar no es
+        el sueldo sino la resta. Y volvés a tener gente a diez cuadras, que no aparece en
+        ninguna cuenta y pesa todos los días.</p>`; } },
+    { txt:"Quedarte",
+      hacer(){ animo(-6); recordar("Se quedó lejos");
+        return `<p>Le decís que no y cortás el teléfono con una sensación rara.</p>
+        <p>Acá hay más oportunidades y eso es cierto. También es cierto que llevás
+        ${Math.floor(S.mes/12)} años pagando alquileres que allá no pagarías.</p>`; } },
+  ]
+},
+{
   /* El origen "casa" tenía una ventaja que no vencía nunca: la escena del
      aumento de alquiler está bloqueada para él, así que llegaba al año diez sin
      haber pagado un peso de techo. Este hito cierra eso. */
@@ -2380,6 +2449,16 @@ const EVENTOS = [
     <p>Hace rato que venís funcionando con lo mínimo, resolviendo lo urgente y postergando
     todo lo demás. ${S.flags.terapia ? "Hasta en terapia te lo dijeron con todas las letras."
     : "Nadie te lo dijo todavía porque desde afuera parecés bien."}</p>`,
+    () => `<p>Te quedaste sentado en el borde de la cama un rato largo antes de levantarte. No
+    pensabas en nada en particular. Simplemente no arrancabas.</p>
+    <p>${S.flags.lejos ? "Estar lejos de tu gente te pesa más algunos meses que otros. Este es uno de esos."
+    : S.trabajoTipo === "monotributo" ? "Trabajás solo, cobrás cuando cobrás y no hay nadie a quien contarle el día."
+    : S.deuda > 0 ? "La deuda no te despierta, pero está ahí cuando te despertás."
+    : "Nada puntual. Es el acumulado."}</p>`,
+    () => `<p>Alguien te preguntó cómo venías y dijiste "bien, ocupado". Después te quedaste
+    pensando en lo poco cierto que era.</p>
+    <p>${S.mesesEnRojo > 20 ? `Llevás ${S.mesesEnRojo} meses de esta década debiendo plata. Eso desgasta de un modo que no aparece en ningún resumen de cuenta.`
+    : "No te está yendo mal. Te está costando, que es otra cosa, y cansa igual."}</p>`,
   ],
   opciones: [
     { txt:"Parar. Unos días afuera, como sea",
@@ -2405,6 +2484,281 @@ const EVENTOS = [
         return `<p>Seguís como venías.</p>
         <p>A veces pasa solo. A veces no, y lo que empezó como cansancio termina siendo algo de
         lo que cuesta bastante más volver.</p>`; } },
+  ]
+},
+{
+  /* --- CAMINOS SEGÚN EL ARRANQUE ---
+     Estas escenas existen solo si elegiste ese comienzo. Sin ellas, elegir
+     "monotributista" cambiaba unos números y después vivías la vida de un
+     empleado igual. Las de trabajo traen además las lecciones que le faltaban
+     al juego: caja contra ganancia, costo de reposición, y qué se compra con
+     los descuentos del recibo de sueldo. */
+  id:"cobro-90", repetible:true, peso:3, cond: () => S.trabajoTipo === "monotributo" && S.mes > 8,
+  texto: [
+    () => `<p>Cerrás el mejor mes del año: facturás ${fmt(S.sueldo * 1.7)}.</p>
+    <p>Y en el mail dice, en letra chica, "pago a 90 días". Tres meses de laburo ya hecho que
+    vas a cobrar en septiembre.</p>`,
+    () => `<p>Otra vez. El cliente grande aprueba la factura y avisa que el pago sale con el
+    cierre del trimestre.</p><p>Mientras tanto el alquiler vence el día 10.</p>`,
+  ],
+  opciones: [
+    { txt:"Aguantar con lo que tenés",
+      sub:"Si hay colchón, es solo esperar.",
+      hacer(){ aprender("cajaVsGan");
+        const holgado = aireLiquido() >= 2;
+        if(!holgado) gastar(S.gastos * .5, "Tapar el bache hasta cobrar");
+        animo(holgado ? -2 : -8);
+        return holgado
+          ? `<p>Esperás los tres meses sin drama.</p>
+             <p>Facturar no es cobrar, y la diferencia entre las dos cosas la banca tu colchón.
+             El que trabaja por su cuenta necesita más ahorro que un empleado, no menos: no es
+             prudencia, es que el sistema le pide capital de trabajo.</p>`
+          : `<p>Tapás los meses como podés, con tarjeta y pidiendo prórrogas.</p>
+             <p>Tuviste el mejor mes del año y estuviste al borde de no llegar. Se puede ganar
+             mucho y quedarse sin caja: la mayoría de los que cierran, cierran así.</p>`; } },
+    { txt:"Pedir un adelanto con descuento",
+      sub:"Cobrás ya, resignando una parte.",
+      hacer(){ aprender("cajaVsGan"); cobrar(S.sueldo * 1.7 * .86, "Adelanto con descuento");
+        return `<p>Aceptan pagarte a los diez días con un 14% menos.</p>
+        <p>Ese 14% es lo que cuesta la plata hoy contra la plata en tres meses. Suena a
+        regalarla, y a veces es lo correcto: nadie quiebra por ganar menos, quiebran por no
+        tener con qué pagar el martes.</p>`; } },
+    { txt:"Decirle que así no trabajás",
+      sub:"Perdés el cliente. Ganás la regla.",
+      hacer(){ aprender("cajaVsGan"); S.sueldo *= rnd(.80, .92); animo(3);
+        return `<p>Le contestás que trabajás a treinta días y que lo entendés si no le sirve.</p>
+        <p>No le sirve. Perdés facturación y ganás algo que los que trabajan solos aprenden
+        tarde: un cliente que te financia con tu propia plata no es un buen cliente, es un
+        préstamo que le estás dando vos.</p>`; } },
+  ]
+},
+{
+  id:"reponer", repetible:true, peso:3, cond: () => S.trabajoTipo === "comercio" && S.mes > 10,
+  texto: [
+    () => `<p>Mes buenísimo: vendiste casi todo lo que había en el depósito.</p>
+    <p>Después vas a reponer y el proveedor te pasa la lista nueva. Lo que vendiste a un precio
+    hay que volver a comprarlo bastante más caro.</p>`,
+    () => `<p>Saltó el dólar y el proveedor manda la lista actualizada el mismo día. Lo que
+    tenías en góndola quedó vendido a precio viejo.</p>`,
+  ],
+  opciones: [
+    { txt:"Reponer todo aunque duela",
+      sub:"Mantener el negocio andando.",
+      hacer(){ aprender("costoRepo"); gastar(S.sueldo * 1.15, "Reposición de mercadería");
+        return `<p>Ponés casi todo lo que habías ganado en volver a llenar el depósito.</p>
+        <p>Acá está la trampa que funde comercios sin que se den cuenta: si medís la ganancia
+        contra lo que te costó, ganaste. Si la medís contra lo que sale reponerlo, muchas veces
+        perdiste, y venís sacando plata de un negocio que se achica.</p>`; } },
+    { txt:"Reponer la mitad y guardar el resto",
+      sub:"El negocio se achica, tu bolsillo no.",
+      hacer(){ aprender("costoRepo"); gastar(S.sueldo * .55, "Reposición parcial");
+        S.sueldo *= .93;
+        return `<p>Llenás la mitad de las góndolas y te quedás con la diferencia.</p>
+        <p>Es lo que hace mucha gente y tiene nombre: descapitalizarse. El negocio vende menos
+        el mes que viene porque tiene menos para vender, y así hasta que no queda nada.</p>`; } },
+    { txt:"Remarcar todo antes de vender",
+      sub:"Vender a precio de reposición, no de compra.",
+      hacer(){ aprender("costoRepo"); animo(-2);
+        if(Math.random() < .6){ S.sueldo *= 1.06;
+          return `<p>Remarcás todo el mismo día que llega la lista nueva.</p>
+          <p>Un par de clientes se quejan y la mayoría no dice nada. Es lo correcto: el precio
+          tiene que cubrir lo que cuesta reponer, no lo que costó comprar.</p>`; }
+        S.sueldo *= .96; animo(-3);
+        return `<p>Remarcás y se te va gente al de la otra cuadra, que todavía tiene precio
+        viejo.</p><p>Vas a estar bien cuando él también tenga que reponer. Mientras tanto,
+        perdés ventas por hacer lo que corresponde.</p>`; } },
+  ]
+},
+{
+  id:"contratado", peso:3, cond: () => S.trabajoTipo === "blanco" && S.mes > 26 && !S.flags.tentado,
+  texto: () => `<p>Te llama alguien de otra empresa. El puesto es parecido y ofrecen
+  ${fmt(S.sueldo * 1.42)} <b>en mano</b>, facturando como monotributista.</p>
+  <p>Es un 42% más que tu sueldo de bolsillo de hoy.</p>`,
+  opciones: [
+    { txt:"Aceptar, es mucha diferencia",
+      hacer(){ aprender("enMano"); S.flags.tentado = true;
+        S.sueldo *= 1.42; S.trabajoTipo = "monotributo"; S.flags.freelance = true;
+        S.trabajo = "Facturando";
+        S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc; animo(4);
+        recordar("Pasó a facturar por más plata en mano");
+        return `<p>Renunciás y empezás a facturar todos los meses.</p>
+        <p>Ese 42% no es todo ganancia. Perdiste el aguinaldo (un mes de sueldo por año), la
+        indemnización (el colchón que no tuviste que juntar), las vacaciones pagas y los
+        aportes. Sale a favor mientras nada salga mal, y el problema es que en diez años algo
+        siempre sale mal.</p>`; } },
+    { txt:"Pedir que sea en blanco por menos",
+      hacer(){ aprender("enMano"); S.flags.tentado = true;
+        if(Math.random() < .45){ S.sueldo *= 1.2; animo(5);
+          S.mesesDesdeParitaria = 0; S.ipcUltimaParitaria = S.ipc;
+          recordar("Negoció pasar en blanco por menos plata");
+          return `<p>Aceptan ponerte en blanco por bastante menos de lo que ofrecían en mano.</p>
+          <p>Cobrás menos por mes y comprás todo lo que no se ve. A los diez años, con un
+          despido en el medio, casi siempre es el mejor negocio de los dos.</p>`; }
+        animo(-3);
+        return `<p>Te dicen que la estructura es esa y no la pueden cambiar.</p>
+        <p>Te quedás donde estabas. Que una empresa no pueda contratarte en blanco también dice
+        algo sobre esa empresa.</p>`; } },
+    { txt:"Quedarte donde estás",
+      hacer(){ aprender("enMano"); S.flags.tentado = true; animo(2);
+        recordar("Rechazó facturar por más en mano");
+        return `<p>Agradecés y seguís donde estás.</p>
+        <p>Rechazaste un 42% más. Lo que compraste con eso es aburrido y no se cuenta en ningún
+        asado: aguinaldo, indemnización, y que un mes de enfermedad no sea un mes sin cobrar.</p>`; } },
+  ]
+},
+{
+  id:"volver-al-pueblo", repetible:true, peso:2, cond: () => !!S.flags.lejos && S.mes > 20,
+  texto: [
+    () => `<p>Se casa tu prima. Son novecientos kilómetros, tres días y el regalo.</p>
+    <p>Tu vieja pregunta por el grupo si vas, y todos ven cuándo lo leíste.</p>`,
+    () => `<p>Cumple ochenta tu abuela. Es un fin de semana largo y los pasajes están por las
+    nubes justamente por eso.</p>`,
+  ],
+  opciones: [
+    { txt:"Ir igual",
+      hacer(){ gastar(S.gastos * .75, "Pasajes y el regalo"); animo(13);
+        return `<p>Viajás de noche para no perder el viernes de laburo.</p>
+        <p>Esto es lo que nadie te cuenta de irse: la distancia se paga en plata todos los años,
+        en cada casamiento, cada cumpleaños y cada vez que algo pasa allá.</p>`; } },
+    { txt:"Mandar el regalo y no ir",
+      hacer(){ gastar(S.gastos * .18, "El regalo"); animo(-11);
+        return `<p>Mandás plata y una nota de voz larga.</p>
+        <p>Ahorraste. También sumaste una foto en la que no estás, y esas se van juntando.</p>`; } },
+  ]
+},
+{
+  /* Vivir solo era el único arranque sin escenas propias: pagaba más caro y no
+     pasaba nada distinto. Estas dos son el otro lado de esa moneda — el costo
+     fijo que no se divide, y no tener a nadie que te cubra un mes. */
+  id:"vivir-solo", repetible:true, peso:2,
+  cond: () => S.origen === "solo" && S.mes > 16,
+  texto: [
+    () => `<p>Sacás la cuenta de lo que se te va en el departamento: alquiler, expensas, luz,
+    gas, internet. Todo por vos.</p>
+    <p>Una amiga que vive con dos personas paga por su cuarto menos de la mitad que vos, en el
+    mismo barrio.</p>`,
+    () => `<p>Se te vuela una parte del techo del balcón y el encargado te avisa que la
+    reparación la paga el inquilino.</p>
+    <p>No hay con quién dividirla.</p>`,
+    () => `<p>Un conocido te escribe: se separó, necesita un lugar dos o tres meses y te ofrece
+    poner ${fmt(S.gastos * .3)} por mes por el cuarto que tenés vacío.</p>`,
+  ],
+  opciones: [
+    { txt:"Meter a alguien en el cuarto de al lado",
+      sub:"Bajás el gasto fijo. Perdés el lugar.",
+      hacer(){ aprender("gastoFijo"); S.gastos *= .80; S.gastosPiso *= .80; animo(-9);
+        recordar("Metió a alguien en casa");
+        return `<p>Entra a fin de mes con dos valijas y una tele.</p>
+        <p>Te bajaste el gasto fijo un 20% de una y para siempre, que es más de lo que te va a
+        dar cualquier inversión en toda la década. Lo pagás en otra moneda: el living dejó de
+        ser tuyo.</p>`; } },
+    { txt:"Bancarlo. Vivir solo es lo que querías",
+      sub:"Cuesta plata y vale algo.",
+      hacer(){ animo(9);
+        return `<p>Seguís solo.</p>
+        <p>Estás pagando un sobreprecio real todos los meses y estás recibiendo algo real a
+        cambio. No es un error mientras sepas cuánto sale: el error es pagarlo sin haberlo
+        elegido.</p>`; } },
+    { txt:"Mudarte a algo más chico",
+      sub:"Un gasto grande hoy, menos gasto todos los meses.",
+      hacer(){ aprender("gastoFijo"); gastar(S.gastos * 1.25, "Mudanza, depósito y comisión");
+        S.gastos *= .84; S.gastosPiso *= .84; animo(-4); recordar("Se mudó a algo más chico");
+        return `<p>Un monoambiente diez cuadras más lejos, con menos luz.</p>
+        <p>Pagaste la mudanza una vez y te llevás la baja del alquiler todos los meses que
+        siguen. A diez años, esa resta gana casi siempre — y casi nadie la hace porque el
+        golpe se siente hoy y el beneficio se siente nunca.</p>`; } },
+  ]
+},
+{
+  id:"solo-sin-red", repetible:true, peso:1,
+  cond: () => S.origen === "solo" && S.mes > 30,
+  texto: [
+    () => `<p>Te agarra una gripe fea un martes. Tres días en cama sin poder salir a nada.</p>
+    <p>No hay nadie que te traiga algo de la farmacia ni que reciba el paquete.</p>`,
+    () => `<p>Se te corta el agua caliente un viernes a la noche. El plomero cobra el doble
+    fuera de horario y el lunes te tenés que quedar a esperarlo.</p>`,
+  ],
+  opciones: [
+    { txt:"Resolverlo pagando",
+      hacer(){ gastar(S.gastos * .16, "Resolverlo a las apuradas");
+        aprender("liquidez");
+        return `<p>Pedís todo, pagás recargo por todo y se soluciona.</p>
+        <p>Vivir solo convierte un montón de problemas chicos en problemas de plata. Eso está
+        bien mientras haya plata disponible: es exactamente para esto que sirve tener algo
+        líquido y aburrido, y no todo bien invertido.</p>`; } },
+    { txt:"Pedirle a alguien que te dé una mano",
+      hacer(){ animo(7); S.flags.pidioAyuda = true;
+        return `<p>Mandás dos mensajes con vergüenza. Los dos te contestan que sí.</p>
+        <p>La red que tenés también es patrimonio: es lo que te evita pagar el precio de
+        urgencia todas las veces. No aparece en ninguna cuenta y es de lo primero que se pierde
+        cuando te aislás para ahorrar.</p>`; } },
+    { txt:"Aguantártela solo",
+      hacer(){ animo(-8);
+        return `<p>Te la bancás. Sale gratis.</p>
+        <p>Gratis en plata. Estas cosas se pagan igual, solo que en otra cuenta y con
+        retraso.</p>`; } },
+  ]
+},
+{
+  id:"companero-se-va", repetible:true, peso:2,
+  cond: () => S.origen === "compartido" && !S.flags.seFue && S.mes > 14,
+  texto: [
+    () => `<p>Uno de tus compañeros se va: consiguió algo en otro lado y avisa con un mes.</p>
+    <p>El alquiler es el mismo y ahora son dos.</p>`,
+    () => `<p>El que ocupó el cuarto del fondo hace dos meses que no pone su parte. Dice que la
+    semana que viene.</p>`,
+  ],
+  opciones: [
+    { txt:"Bancar el mes hasta que aparezca alguien",
+      hacer(){ gastar(S.gastos * .3, "La parte que falta"); animo(-4);
+        return `<p>Ponés vos la diferencia dos meses hasta que entra alguien nuevo.</p>
+        <p>Compartir baja el costo y agrega un riesgo que no estaba en la cuenta: dependés de
+        que el otro cumpla. Es el mismo riesgo que prestarle plata a alguien, solo que todos
+        los meses.</p>`; } },
+    { txt:"Buscar reemplazo a las apuradas",
+      hacer(){ animo(-6);
+        if(Math.random() < .6) return `<p>En tres semanas entra alguien que casi no conocés.</p>
+        <p>Sale bien. La convivencia con desconocidos es la manera más barata de vivir en esta
+        ciudad y también la más frágil.</p>`;
+        S.gastos *= 1.06;
+        return `<p>Entra alguien que resulta un desastre y se va a los cuatro meses.</p>
+        <p>Perdiste plata y dos fines de semana. Apurar una decisión de convivencia sale caro
+        casi siempre.</p>`; } },
+    { txt:"Aprovechar y mudarte a algo más chico",
+      hacer(){ aprender("gastoFijo"); gastar(S.gastos * 1.3, "Mudanza y depósito");
+        S.gastos *= .88; S.gastosPiso *= .88; animo(-3);
+        return `<p>Agarrás un monoambiente y te vas solo.</p>
+        <p>Pagás la mudanza una vez y te bajás el gasto fijo para siempre. Los gastos fijos son
+        los que ahogan; un gasto grande de una vez casi nunca es el problema.</p>`; } },
+  ]
+},
+{
+  id:"suegros", repetible:true, peso:2, cond: () => !!S.flags.pareja && S.mes > 24,
+  texto: [
+    () => `<p>Los viejos de tu pareja les ofrecen ayuda para el alquiler. No es un préstamo ni
+    un regalo: es algo que nunca se define del todo.</p>`,
+    () => `<p>Se viene un cumpleaños grande en la familia de tu pareja y se da por hecho que
+    ustedes ponen la mitad de todo.</p>`,
+  ],
+  opciones: [
+    { txt:"Aceptar la ayuda y agradecerla",
+      hacer(){ cobrar(S.gastos * .8, "Ayuda de la familia"); animo(-3);
+        return `<p>Aceptan y les sacan un peso de encima este mes.</p>
+        <p>La plata de la familia rara vez es gratis: no cobra interés, cobra en opinión sobre
+        cómo viven ustedes. A veces vale la pena igual, siempre que las dos partes sepan qué se
+        está intercambiando.</p>`; } },
+    { txt:"Agradecer y decir que no",
+      hacer(){ animo(6);
+        return `<p>Lo hablan entre ustedes primero y contestan juntos.</p>
+        <p>Van a estar más ajustados y con menos gente opinando. Que la decisión la tomen los
+        dos vale más que el monto.</p>`; } },
+    { txt:"Aceptar y llevar la cuenta para devolverlo",
+      hacer(){ cobrar(S.gastos * .8, "Préstamo familiar");
+        S.cuotas.push({ monto: S.gastos * .8 / 12, restantes: 12, desc:"Devolviendo a la familia" });
+        animo(2);
+        return `<p>Lo toman como préstamo, lo anotan y arreglan devolverlo en un año.</p>
+        <p>Ponerle números y fecha a la plata de la familia es lo que evita la versión mala de
+        esta historia, que es la que se cuenta veinte años después en una mesa.</p>`; } },
   ]
 },
 {
@@ -3429,6 +3783,13 @@ function pantallaEscena(esc){
 function bloqueDesbloqueos(){
   if(!S.nuevos.length) return "";
   const html = S.nuevos.map(d => {
+    /* Si una escena nombra un id que no existe, se saltea la tarjeta en vez de
+       romper el render: un desbloqueo que falta es un detalle, una pantalla sin
+       botones es una partida perdida. */
+    const tabla = d.tipo === "concepto" ? CONCEPTOS
+                : d.tipo === "instrumento" ? null : LOGROS;
+    if(tabla && !tabla[d.id]) return "";
+    if(d.tipo === "instrumento" && !ESCALERA.some(x => x.id === d.id)) return "";
     if(d.tipo === "concepto"){
       const c = CONCEPTOS[d.id];
       return `<div class="desbloqueo"><span class="ico">◆</span><div>
