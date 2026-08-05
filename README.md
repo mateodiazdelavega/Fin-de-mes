@@ -86,6 +86,30 @@ otra cosa que esté pasando (quedarte sin trabajo, el bajón anímico, la elecci
 Agregar una escena nueva es agregar un objeto a una de las dos listas. Cada opción tiene
 un `hacer()` que modifica el estado y devuelve el texto de la consecuencia.
 
+## Veinte maneras de arrancar
+
+El comienzo se elige en dos ejes: **dónde vivís** y **de qué laburás**. Cinco por cuatro dan
+veinte arranques distintos sin que el juego dure un minuto más — son dos toques en vez de
+uno. Cada opción muestra su dificultad en tres puntos, así nadie firma la partida más brava
+sin enterarse.
+
+Y enseña algo que el juego no decía: **la forma de tu ingreso importa tanto como el monto**.
+
+| Trabajo | Cobra | Qué le falta |
+|---|---|---|
+| Empleado en blanco | $900.000 | — |
+| Monotributista | $1.120.000 | Sin aguinaldo, sin indemnización, y lo que entra varía cada mes |
+| Negocio familiar | $960.000 | Lo que entra sigue a la economía: en crisis vende menos |
+| Changas y facultad | $560.000 | Poco ahora, con la promesa de un salto |
+
+El monotributista cobra 24% más que el empleado y termina peor en casi todos los casos: el
+aguinaldo es un mes de sueldo por año, la indemnización es el colchón que no tuviste que
+juntar, y un mes flojo no lo cubre nadie. Medido sobre las veinte combinaciones, llegar a
+los diez años va del 18% al 63% según cómo arranques.
+
+Antes de todo eso hay una pantalla que pregunta tu nombre, y aparece después en boca de los
+personajes y en el epílogo.
+
 ## La escalera
 
 Los instrumentos no están todos disponibles desde el minuto uno: se habilitan según cuánto
@@ -291,7 +315,7 @@ base de −0,22. El que descubre eso puede ahorrar y llegar entero a la vez.
 
 Además de la inflación de estilo de vida, tres cosas más lo hacen difícil:
 
-- **Los márgenes son chicos.** Se ahorra 22%, 18% u 11% del sueldo según de dónde arranques,
+- **Los márgenes son chicos.** Se ahorra entre el 13% y el 25% del sueldo según dónde vivas,
   y la suma de todos los golpes de la década se come buena parte de eso.
 - **Una emergencia cuesta cuatro meses de gastos.** A tu viejo lo internan y hay que operar:
   con colchón es un año malo, sin colchón es el principio de una espiral. Es la escena que

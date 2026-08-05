@@ -200,6 +200,12 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
 .rubro-total.ok{color:var(--verde)} .rubro-total.mal{color:var(--oro)}
 .btn[disabled]{opacity:.4; cursor:not-allowed}
 .op.tenue-op{color:var(--muted); border-style:dashed}
+.campo{width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:15px 16px; font-family:inherit; font-size:16px; color:var(--text)}
+.campo::placeholder{color:var(--dim)}
+.campo:focus{outline:none; border-color:var(--oro)}
+.dif{float:right; font-size:9px; letter-spacing:2px; color:var(--oro); line-height:2}
+.dif-off{color:var(--line)}
 
 /* ---------- veredicto del pronóstico ---------- */
 .veredicto{border-radius:12px; padding:14px 16px; margin:0 0 16px; border:1px solid var(--line)}
@@ -313,6 +319,7 @@ function nuevaPartida(origen){
   S = {
     mes: 0, edad: 22,
     origen: origen.id,
+    trabajoTipo: origen.trabajoTipo,
     pesos: origen.pesos, usd: 0, plazo: 0, plazoMeses: 0, deuda: 0,
     /* Bono del país, medido en valor nominal. Paga cupón todos los meses y
        puede dejar de pagarte para siempre. Precio en % de la paridad. */
@@ -340,7 +347,7 @@ function nuevaPartida(origen){
     ipc: 1, ipcUltimaParitaria: 1, mesesDesdeParitaria: 0,
     regimen: pick(["estable","alta","volatil"]), mesesRegimen: rndI(14,30),
     inflMes: .03,
-    flags: {},                        // hitos narrativos alcanzados
+    flags: Object.assign({}, origen.flags),   // hitos narrativos alcanzados
     usados: {},                       // escenas ya vistas (mes de la última vez)
     vistas: {},                       // cuántas veces viste cada una, para elegir variante
     // acumuladores del mes en curso
@@ -350,6 +357,7 @@ function nuevaPartida(origen){
     // métricas
     animoSuma: 0, animoN: 0, mesesEnRojo: 0, picoDeuda: 0, aporteTotal: 0,
     historia: [],                     // decisiones tomadas, para el epílogo
+    nombre: "",                       // cómo te llamás, para las escenas y el final
     conceptos: {}, logros: {},        // lo aprendido y lo conseguido
     nuevos: [],                       // desbloqueos pendientes de avisar
     animoCero: 0,                     // meses seguidos con el ánimo en el piso
@@ -922,10 +930,26 @@ function avanzarMes(){
 
   // --- ingresos ---
   if(S.trabajo){
-    cobrar(S.sueldo, "Sueldo");
+    /* El sueldo en blanco cae igual todos los meses. El del monotributista se
+       mueve solo, y el del comercio familiar sigue a la economía: en crisis
+       vende menos, y ahí se junta lo peor de los dos mundos — te va mal cuando
+       a todo el mundo le va mal. */
+    let entra = S.sueldo;
+    if(S.trabajoTipo === "monotributo"){
+      entra *= rnd(.74, 1.26);
+      S.pesos -= S.sueldo * .040;            // monotributo, todos los meses
+      S.detalle.push(["Monotributo", -S.sueldo * .040]);
+      S.egMes += S.sueldo * .040;
+    }
+    if(S.trabajoTipo === "comercio"){
+      const clima = { estable: 1.12, alta: 1.00, volatil: .95, crisis: .78 }[S.regimen];
+      entra *= clima * rnd(.88, 1.12);
+    }
+    cobrar(entra, S.trabajoTipo === "blanco" ? "Sueldo" : "Lo que entró");
     S.sinTrabajo = 0;
     const m = fechaMes();
-    if(m === 5 || m === 11) cobrar(S.sueldo / 2, "Medio aguinaldo");
+    // El aguinaldo existe en relación de dependencia y en ningún otro lado.
+    if((m === 5 || m === 11) && S.trabajoTipo === "blanco") cobrar(S.sueldo / 2, "Medio aguinaldo");
   } else {
     S.sinTrabajo++;
   }
@@ -1014,6 +1038,8 @@ function avanzarMes(){
      no aparece en ninguna planilla. Sin esto, el origen "casa" no pagaba nunca
      por su ventaja. */
   if(S.origen === "casa" && !S.flags.seFue && S.mes > 40) animo(-.30);
+  // Los primeros años lejos de los tuyos, sin red y sin nadie a quien llamar.
+  if(S.flags.lejos && S.mes < 48) animo(-.15);
   S.animoSuma += S.animo; S.animoN++;
   S.animoCero = S.animo <= 2 ? S.animoCero + 1 : 0;
 
@@ -1023,8 +1049,10 @@ function avanzarMes(){
     /* Un tercio de las veces no hay indemnización: en negro, monotributo, o la
        empresa que "va a arreglar" y no arregla. Eso es lo que convierte un
        despido en una emergencia. */
-    if(Math.random() < .25){
-      S.avisos.push("Te desvincularon sin indemnización: estabas por fuera, y lo que prometen arreglar va a tardar meses.");
+    if(S.trabajoTipo !== "blanco" || Math.random() < .25){
+      S.avisos.push(S.trabajoTipo === "blanco"
+        ? "Te desvincularon sin indemnización: estabas por fuera, y lo que prometen arreglar va a tardar meses."
+        : "Se terminó. Sin relación de dependencia no hay indemnización que reclamar: simplemente deja de entrar plata.");
       animo(-14);
     } else {
       S.avisos.push("Te desvincularon. Te pagan una indemnización y a partir del mes que viene no entra más nada.");
@@ -1060,17 +1088,64 @@ function avanzarMes(){
    propósito: la mediana argentina real ahorra bastante menos, y con márgenes
    generosos el juego se ganaba solo. Abajo de todo, juntar un colchón de seis
    meses lleva casi la década entera si no pasa nada más. */
-const ORIGENES = [
+/* El arranque se elige en dos ejes: dónde vivís y de qué laburás. Antes era uno
+   solo y la vivienda arrastraba el sueldo, así que había tres comienzos. Ahora
+   hay cinco por cuatro: veinte combinaciones sin que el juego dure un minuto
+   más, porque son dos toques en vez de uno.
+
+   Y enseña algo que el juego no decía: la forma de tu ingreso importa tanto
+   como el monto. Un monotributista gana más que un empleado y no tiene
+   aguinaldo, ni indemnización, ni nadie que le cubra un mes malo. */
+const VIVIENDAS = [
   { id:"casa", titulo:"En casa de tus viejos",
     sub:"No pagás alquiler, pero tampoco sos del todo dueño de tu vida.",
-    pesos:120000, sueldo:840000, gastos:655000, trabajo:"Atención al cliente" },
+    pesos:120000, ratio:.78, dif:1 },
   { id:"compartido", titulo:"Un depto compartido en Almagro",
     sub:"Dos compañeros, un baño, y el alquiler que sube cada seis meses.",
-    pesos:180000, sueldo:910000, gastos:746000, trabajo:"Administrativo en una PyME" },
+    pesos:180000, ratio:.82, dif:2 },
   { id:"solo", titulo:"Solo, y te bancás todo",
-    sub:"Nadie te ayuda si el mes se pone feo. Muy difícil.",
-    pesos:240000, sueldo:1050000, gastos:934000, trabajo:"Vendedor con comisiones" },
+    sub:"Nadie te ayuda si el mes se pone feo.",
+    pesos:240000, ratio:.87, dif:3 },
+  { id:"interior", titulo:"Recién llegado del interior",
+    sub:"No conocés a nadie, y todos los meses mandás algo a tu casa.",
+    pesos:90000, ratio:.875, dif:3, flags:{ lejos:true } },
+  { id:"depareja", titulo:"Ya viviendo en pareja",
+    sub:"Los gastos se reparten desde el día uno. También las decisiones.",
+    pesos:200000, ratio:.75, dif:1, flags:{ pareja:"mixta", hablaronPlata:false } },
 ];
+
+const TRABAJOS = [
+  { id:"blanco", titulo:"Empleado en blanco",
+    sub:"Sueldo el día 4, aguinaldo en junio y diciembre, indemnización si te echan.",
+    sueldo:900000, dif:1, puesto:"Administrativo en una PyME" },
+  { id:"monotributo", titulo:"Monotributista, por tu cuenta",
+    sub:"Cobrás más y no existe el aguinaldo, la indemnización ni el mes malo cubierto.",
+    sueldo:1120000, dif:3, puesto:"Por mi cuenta", flags:{ freelance:true } },
+  { id:"comercio", titulo:"En el negocio de tu familia",
+    sub:"Lo que entra depende de cómo venga el país, no de tu contrato.",
+    sueldo:960000, dif:2, puesto:"En el negocio familiar", flags:{ comercio:true } },
+  { id:"estudia", titulo:"Changas mientras estudiás",
+    sub:"Entra poco ahora. Si te recibís, en unos años pega un salto.",
+    sueldo:560000, dif:2, puesto:"Changas y facultad", flags:{ estudiando:true } },
+];
+
+/* Cuán cuesta arriba viene cada opción. Tres puntos llenos es modo difícil de
+   verdad: sin eso, alguien podía elegir "recién llegado del interior" y
+   "monotributista" sin saber que acababa de firmar la partida más brava. */
+const puntos = n => `<span class="dif" title="Dificultad">${
+  "●".repeat(n)}<span class="dif-off">${"●".repeat(3 - n)}</span></span>`;
+
+/* Combina los dos ejes en el punto de partida concreto de la partida. */
+function armarArranque(viv, tra){
+  return {
+    id: viv.id, trabajoTipo: tra.id,
+    pesos: viv.pesos,
+    sueldo: tra.sueldo,
+    gastos: Math.round(tra.sueldo * viv.ratio),
+    trabajo: tra.puesto,
+    flags: Object.assign({}, viv.flags, tra.flags),
+  };
+}
 
 /* ---------- HITOS: se disparan en orden, en el mes indicado ---------- */
 const HITOS = [
@@ -1282,7 +1357,7 @@ const HITOS = [
   ]
 },
 {
-  id:"pareja", mes:54, ventana:16, prob:.85,
+  id:"pareja", mes:54, ventana:16, prob:.85, cond: () => !S.flags.pareja,
   texto: () => `<p>Hace rato que están. Aparece la conversación de vivir juntos y con ella
   la otra, la que nadie quiere tener: cómo se maneja la plata.</p>`,
   opciones: [
@@ -1540,7 +1615,7 @@ const EVENTOS = [
   zapatillas que iban a subir, el celular que convenía traer de afuera.</p>
   <p>Esta vez saca el teléfono en la mesa y muestra la pantalla en verde. Cuarenta por ciento
   en dos meses. Todos se acercan a mirar.</p>
-  <p>—Todavía estás a tiempo —te dice.</p>`,
+  <p>—Todavía estás a tiempo${S.nombre ? ", " + S.nombre : ""} —te dice.</p>`,
   opciones: [
     { txt:"Poner una parte grande",
       hacer(){ aprender("suerteHab"); avanzaArco("pedro","euforico");
@@ -1889,8 +1964,8 @@ const EVENTOS = [
   id:"vale-1", peso:2, cond: () => S.mes > 13 && S.gente.vale.etapa === "" && !!S.trabajo,
   texto: () => `<p>Vale se sienta al lado tuyo. Entró seis meses antes y tiene una cuenta de
   Excel abierta en el segundo monitor que no es del trabajo.</p>
-  <p>—¿Vos tenés la plata en la caja de ahorro? —te pregunta, y hace una mueca cuando le
-  decís que sí—. Mirá, te muestro una cosa.</p>`,
+  <p>—${S.nombre ? S.nombre + ", ¿" : "¿"}vos tenés la plata en la caja de ahorro? —te pregunta,
+  y hace una mueca cuando le decís que sí—. Mirá, te muestro una cosa.</p>`,
   opciones: [
     { txt:"Escucharla",
       hacer(){ aprender("tasaReal"); avanzaArco("vale","cerca");
@@ -3542,9 +3617,9 @@ function pantallaFinal(){
   const yaLogrados = Object.keys(col.col.logros).length;
 
   $app.innerHTML = `<div class="fade">
-    <div class="eyebrow">${S.finTemprano
+    <div class="eyebrow">${(S.nombre ? S.nombre + " · " : "") + (S.finTemprano
       ? "Año " + (Math.floor(S.mes/12)+1) + " de 10 · " + S.edad + " años"
-      : "Diez años después · " + S.edad + " años"}</div>
+      : "Diez años después · " + S.edad + " años")}</div>
     <h1>${titulo}</h1>
     <div class="texto serif">${epilogo}</div>
 
@@ -3671,33 +3746,90 @@ function pantallaFinal(){
 /* ==========================================================================
    INICIO
    ========================================================================== */
+let eleccionInicio = {};
+
 function pantallaInicio(){
-  S = null; pendientes = []; pintarHud();
+  S = null; pendientes = []; eleccionInicio = {}; pintarHud();
   const guardada = hayGuardado();
+  const col = leerColeccion();
+  const combos = Object.keys(col.combos || {}).length;
+  const totalCombos = VIVIENDAS.length * TRABAJOS.length;
+
   $app.innerHTML = `<div class="fade" style="padding-top:44px">
     <div class="eyebrow">Un juego de decisiones</div>
     <h1 class="serif">Fin de Mes</h1>
     <div class="texto serif" style="margin-bottom:26px">
-      <p>Tenés veintidós años y acabás de conseguir tu primer trabajo en blanco.</p>
-      <p>Lo que sigue son diez años: sueldos que llegan tarde, precios que llegan temprano,
-      y un montón de decisiones chicas que de a una no parecen nada.</p>
+      <p>Tenés veintidós años y diez años por delante: sueldos que llegan tarde, precios que
+      llegan temprano, y un montón de decisiones chicas que de a una no parecen nada.</p>
       <p><em>No hay respuestas correctas. Hay consecuencias.</em></p>
     </div>
-    <div class="eyebrow gris">¿De dónde arrancás?</div>
-    <div class="ops">
-      ${ORIGENES.map((o,i) => `<button class="op" data-i="${i}">${o.titulo}
-        <span class="sub">${o.sub}</span></button>`).join("")}
-    </div>
-    ${guardada ? `<button class="btn ghost" id="seguirPartida" style="margin-top:16px">Seguir la partida anterior</button>` : ""}
+    <div class="eyebrow gris">¿Cómo te llamás?</div>
+    <input type="text" id="nombre" class="campo" maxlength="18" autocomplete="off"
+           placeholder="Tu nombre" value="${(col.nombre || "").replace(/"/g, "&quot;")}">
+    <button class="btn" id="empezar" style="margin-top:14px">Empezar</button>
+    ${guardada ? `<button class="btn ghost" id="seguirPartida" style="margin-top:10px">Seguir la partida anterior</button>` : ""}
+    ${col.partidas ? `<p class="nota">Llevás ${col.partidas}
+      ${col.partidas === 1 ? "vida jugada" : "vidas jugadas"} y probaste ${combos} de
+      ${totalCombos} maneras de arrancar.</p>` : ""}
     <p class="nota">Los precios, los sueldos y la inflación son inventados pero verosímiles.
       El país que te toca se sortea al empezar y cambia sin avisar, como el de verdad.</p>
   </div>`;
 
-  $app.querySelectorAll(".op").forEach(b => {
-    b.onclick = () => { nuevaPartida(ORIGENES[+b.dataset.i]); siguiente(); };
-  });
+  const $n = document.getElementById("nombre");
+  const arrancar = () => {
+    const nombre = ($n.value || "").trim().slice(0, 18);
+    const c = leerColeccion(); c.nombre = nombre; guardarColeccion(c);
+    eleccionInicio.nombre = nombre;
+    pantallaVivienda();
+  };
+  document.getElementById("empezar").onclick = arrancar;
+  $n.addEventListener("keydown", ev => { if(ev.key === "Enter") arrancar(); });
+  $n.focus();
   const sp = document.getElementById("seguirPartida");
   if(sp) sp.onclick = () => { if(cargar()) siguiente(); };
+}
+
+function pantallaVivienda(){
+  pintarHud();
+  $app.innerHTML = `<div class="fade" style="padding-top:32px">
+    <div class="eyebrow">Primero de dos</div>
+    <h2>${eleccionInicio.nombre ? eleccionInicio.nombre + ", ¿dónde vivís?" : "¿Dónde vivís?"}</h2>
+    <p class="texto" style="font-size:15px; color:var(--muted); margin:0 0 18px">
+      Define cuánto de lo que entra se te va antes de decidir nada.</p>
+    <div class="ops">
+      ${VIVIENDAS.map((o,i) => `<button class="op" data-i="${i}">${o.titulo} ${puntos(o.dif)}
+        <span class="sub">${o.sub}</span></button>`).join("")}
+    </div></div>`;
+  $app.querySelectorAll(".op").forEach(b => {
+    b.onclick = () => { eleccionInicio.viv = VIVIENDAS[+b.dataset.i]; pantallaTrabajo(); };
+  });
+}
+
+function pantallaTrabajo(){
+  pintarHud();
+  $app.innerHTML = `<div class="fade" style="padding-top:32px">
+    <div class="eyebrow">Segundo de dos</div>
+    <h2>¿De qué laburás?</h2>
+    <p class="texto" style="font-size:15px; color:var(--muted); margin:0 0 18px">
+      No es solo cuánto entra: es de qué forma entra, y qué pasa el mes que deja de entrar.</p>
+    <div class="ops">
+      ${TRABAJOS.map((o,i) => `<button class="op" data-i="${i}">${o.titulo} ${puntos(o.dif)}
+        <span class="sub">${o.sub}</span></button>`).join("")}
+    </div>
+    <button class="btn ghost" id="volver" style="margin-top:14px">Volver</button></div>`;
+  $app.querySelectorAll(".op").forEach(b => {
+    b.onclick = () => {
+      const tra = TRABAJOS[+b.dataset.i];
+      nuevaPartida(armarArranque(eleccionInicio.viv, tra));
+      S.nombre = eleccionInicio.nombre || "";
+      const c = leerColeccion();
+      c.combos = c.combos || {};
+      c.combos[eleccionInicio.viv.id + "/" + tra.id] = true;
+      guardarColeccion(c);
+      siguiente();
+    };
+  });
+  document.getElementById("volver").onclick = pantallaVivienda;
 }
 
 /* ---------- colección entre partidas ----------
