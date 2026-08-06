@@ -41,6 +41,40 @@ Lo que cambió:
   ánimo. Después desaparece.
 - Los eventos al azar bajaron del 55% de los meses al 21%: **38 pantallas, unos 25 minutos**.
 
+### Y después dijo la parte importante: tardaba en decidir
+
+No era que el juego fuera largo. Era que **cada pantalla no daba con qué decidir**. En la
+primera escena, una opción decía cuánto costaba y las otras dos no, y ninguna decía qué le
+hacía al ánimo — que es la mitad del puntaje. El jugador tenía que adivinar la mecánica en
+vez de pensar la decisión, después de que el juego le avisara que no hay respuestas
+correctas. Eso paraliza.
+
+Ahora cada opción muestra los **ejes que toca**: cuesta plata, entra plata, sube tu gasto
+fijo, ánimo ↑, arriesgás plata, puede salir mal. Nunca cuánto, nunca si conviene. Lo que se
+decide sigue entero — qué te importa más y qué va a pasar después.
+
+Las etiquetas **se leen del código de cada opción**, no de una lista escrita a mano: 216
+opciones anotadas a mano se desincronizan del código en la primera semana. Se inspecciona el
+`hacer()` de cada una y se deduce qué mueve. Casos que salieron de auditar el resultado:
+
+- Comprar dólares se etiquetaba "cuesta plata". No es un gasto, es cambiar de moneda —
+  ahora dice *pasás a dólares*.
+- Las opciones de invertir mostraban "cuesta plata" y "entra plata" juntas, que confunde más
+  que no decir nada. Si además hay azar, se colapsan en *arriesgás plata*.
+- Si el ánimo sube en una rama y baja en otra, prometer una flecha sería mentir: dice *ánimo,
+  según cómo salga*.
+
+El 13% de las opciones no lleva ninguna etiqueta, y eso también informa: no pasa nada ahora.
+Solo en 3 escenas de 69 todas las opciones etiquetan igual.
+
+El cierre de mes, además, va entero los primeros seis meses —que es donde se aprende a ver
+la licuación— y después se pliega a una línea, salvo que haya algo distinto que mirar.
+
+Una advertencia sobre esto último: **no redujo el scroll**. Medido cuatro veces sobre un
+celular de 880px, lo que libera el cierre plegado lo ocupan las etiquetas. La primera opción
+quedó unos 30px más arriba y las pantallas que obligan a scrollear siguen en ~15%. Lo que
+mejora es que la decisión se lee de un vistazo, no que entre más en pantalla.
+
 El recorte tiene un costo y conviene decirlo: los conceptos que se desbloquean por partida
 bajaron de 15 a 13 (de 26), y un jugador que decide bien termina en quiebre el 3% de las
 veces en vez del 8%. El juego quedó algo más blando. A cambio, se termina — y una partida
