@@ -13,8 +13,38 @@ La gente no maneja mal la plata por falta de información. La maneja mal porque 
 consecuencias de una decisión financiera llegan años más tarde, cuando ya no se pueden
 asociar con la causa.
 
-Un juego es la única forma de arreglar eso: comprime diez años en veinte minutos y te
+Un juego es la única forma de arreglar eso: comprime diez años en veinticinco minutos y te
 hace *sentir* el resultado de algo que elegiste al minuto tres.
+
+## Lo que dijo el primer jugador de verdad
+
+Alguien que no lo diseñó lo jugó entero y dijo dos cosas: **tardó mucho** y **no terminó de
+entender la dinámica**. Las dos resultaron ciertas y medibles, y ninguno de los tests que
+había escrito las detectaba, porque todos verificaban que el juego funcionara — no que se
+entendiera.
+
+**Tardaba 34 minutos.** Una partida eran 53 pantallas y 4.900 palabras, unas veinte páginas
+de un libro. Este README decía "veinte minutos" sin que nadie lo hubiera medido nunca.
+
+**Y no decía cómo se gana.** La pantalla inicial decía *"no hay respuestas correctas, hay
+consecuencias"*, que es una declaración de diseño, no un objetivo. El **aire** —el puntaje—
+aparecía en el encabezado como `AIRE 0,4 m` en rojo, sin explicación. El **ánimo** era una
+barra sin número. Y nada indicaba que la partida durara 120 meses, así que no había forma de
+saber cuánto faltaba: sin final a la vista, cualquier duración se siente eterna.
+
+Lo que cambió:
+
+- La pantalla inicial tiene una tarjeta **Cómo se gana** con las tres reglas: se juegan diez
+  años mes a mes, el puntaje es el aire, y el ánimo también se cobra. Y dice cuánto dura.
+- El encabezado tiene una **barra de progreso** y dice *año 3 de 10*.
+- Los primeros cuatro meses, debajo de los indicadores, se explica qué son el aire y el
+  ánimo. Después desaparece.
+- Los eventos al azar bajaron del 55% de los meses al 21%: **38 pantallas, unos 25 minutos**.
+
+El recorte tiene un costo y conviene decirlo: los conceptos que se desbloquean por partida
+bajaron de 15 a 13 (de 26), y un jugador que decide bien termina en quiebre el 3% de las
+veces en vez del 8%. El juego quedó algo más blando. A cambio, se termina — y una partida
+de 25 minutos que alguien completa enseña más que una de 34 que abandona.
 
 ## Reglas de diseño
 
@@ -333,8 +363,8 @@ Los conceptos y logros **no se reinician** al empezar otra vida: se acumulan en 
 navegador. Al final de cada partida ves cuántos llevás de todos, cuáles fueron novedad
 esta vez, y cuál fue tu mejor aire histórico.
 
-Ahí está la razón concreta para volver a jugar. Una partida típica desbloquea entre 14 y
-20 de los 26 conceptos; llegar a los 26 lleva tres o cuatro vidas, porque los que faltan
+Ahí está la razón concreta para volver a jugar. Una partida típica desbloquea entre 12 y
+17 de los 26 conceptos; llegar a los 26 lleva cuatro o cinco vidas, porque los que faltan
 solo aparecen si tomás decisiones que todavía no tomaste.
 
 ## El gráfico
@@ -367,10 +397,10 @@ distintos, contra uno que elige al azar:
 
 | | al azar | equilibrado | ahorrador |
 |---|---|---|---|
-| Meses de aire (mediana) | 5,1 | 9,7 | **26,0** |
-| Llegaste con aire | 0% | 13% | 3% |
-| Con plata y cansado | 1% | 11% | **53%** |
-| Quiebre o tocar fondo | 52% | 8% | 13% |
+| Meses de aire (mediana) | 3,4 | 13,2 | **21,3** |
+| Llegaste con aire | 0% | 9% | 6% |
+| Con plata y cansado | 2% | 7% | **38%** |
+| Quiebre o tocar fondo | 48% | 3% | 8% |
 
 Lo importante es la última columna: **el que optimiza solo la plata termina rico y roto casi
 la mitad de las veces.** Ninguna estrategia miope llega al mejor final, y esa es exactamente
@@ -404,9 +434,9 @@ La década puede cortarse antes de los diez años, y no como castigo por jugar m
 - **Tocar fondo.** Sin trabajo, sin crédito y sin colchón para bancar la espera.
 - **Insolvencia.** Cuando lo que debés, contando cuotas, supera lo que podés pagar.
 
-Sobre 300 partidas jugadas al azar, el 49% llega a los diez años, 46% termina en quiebre y
-5% tocando fondo. Decidiendo con la cabeza el quiebre baja al 8-13%, que es lo que tiene
-que pasar: el juego es duro con el que no mira, no con el que sí.
+Sobre 300 partidas jugadas al azar, el 57% llega a los diez años, 38% termina en quiebre y
+5% tocando fondo. Decidiendo con la cabeza el quiebre baja al 3-8%. Estos números aflojaron
+cuando se recortó la duración: menos escenas son menos oportunidades de equivocarse.
 
 ## Estado
 

@@ -28,7 +28,16 @@ body{
   backdrop-filter:blur(12px); border-bottom:1px solid var(--line);
   padding:10px 0 9px; margin-bottom:22px;
 }
-.hud-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:9px}
+.progreso-fila{display:flex; align-items:center; gap:9px; margin-bottom:9px}
+.progreso{flex:1; height:2px; background:var(--line); border-radius:2px; overflow:hidden}
+.progreso-fill{height:100%; background:var(--muted); transition:width .4s ease}
+.anio-de{flex:0 0 auto; font-size:10.5px; color:var(--dim); letter-spacing:.03em}
+/* Los dos números que deciden la partida, explicados donde están, y solo los
+   primeros meses: después estorban. */
+.leyenda{margin-top:10px; font-size:11.5px; line-height:1.5; color:var(--dim)}
+.leyenda b{color:var(--muted); font-weight:600}
+.hud-top{display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:9px}
+.edad{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .fecha{font-size:12.5px; color:var(--muted); letter-spacing:.04em; text-transform:uppercase}
 .edad{font-size:12.5px; color:var(--dim)}
 .chips{display:flex; gap:7px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none}
@@ -246,6 +255,17 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
 @media (prefers-reduced-motion:reduce){ .fade{animation:none} }
 @keyframes fade{from{opacity:0; transform:translateY(7px)} to{opacity:1; transform:none}}
 .nota{font-size:12.5px; color:var(--dim); line-height:1.5; margin-top:20px}
+/* Las reglas del juego, en la pantalla inicial. Van en una tarjeta aparte y no
+   en el texto de arriba para que se lean como instrucciones y no como clima. */
+.comovaeso{border:1px solid var(--line); border-radius:12px; padding:15px 16px 14px;
+  margin-bottom:22px; background:rgba(255,255,255,.018)}
+.comovaeso .cv-t{font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--oro); margin-bottom:9px}
+.comovaeso p{font-size:13.5px; line-height:1.55; color:var(--txt); margin:0 0 8px}
+.comovaeso p:last-child{margin-bottom:0}
+.comovaeso .cv-aire{color:var(--verde)}
+.comovaeso .cv-animo{color:var(--oro)}
+.comovaeso .cv-fin{color:var(--dim); font-size:12.5px; margin-top:10px}
 hr.sep{border:none; border-top:1px solid var(--line); margin:22px 0}
 </style>
 </head>
@@ -3766,8 +3786,11 @@ function escenaDisponible(){
     if(h.cond && !h.cond()) continue;
     return h;
   }
-  // 2) eventos al azar
-  if(Math.random() < .55){
+  /* 2) eventos al azar. Esta probabilidad es, en la práctica, cuánto dura una
+     partida: cada punto acá son pantallas de más o de menos. Estaba en .55 y
+     daban 53 escenas — media hora larga de lectura, que es más de lo que
+     aguanta alguien que no diseñó el juego. */
+  if(Math.random() < .21){
     const elegibles = EVENTOS.filter(e => {
       if(!S.guion.eventos[e.id]) return false;   // no todo le pasa a todo el mundo
       const visto = S.usados[e.id];
@@ -3862,8 +3885,15 @@ function pintarHud(){
   const a = aire();
   const claseAire = a < 2 ? "mala" : a >= 8 ? "buena" : "";
   const colorAnimo = S.animo < 30 ? "var(--rojo)" : S.animo < 60 ? "var(--oro)" : "var(--verde)";
+  /* No saber cuándo termina hace que cualquier duración se sienta eterna. El
+     año y la barra contestan "¿cuánto falta?" sin que haya que preguntarlo. */
+  const anio = Math.min(10, Math.floor(S.mes / 12) + 1);
   $hud.innerHTML = `
     <div class="hud">
+      <div class="progreso-fila">
+        <div class="progreso"><div class="progreso-fill" style="width:${S.mes / DURACION * 100}%"></div></div>
+        <span class="anio-de">año ${anio} de 10</span>
+      </div>
       <div class="hud-top">
         <span class="fecha">${MESES_NOMBRE[fechaMes()]} ${fechaAnio()}</span>
         <span class="edad">${S.edad} años · ${S.trabajo || "sin trabajo"}</span>
@@ -3882,6 +3912,10 @@ function pintarHud(){
         <span class="animo-lbl">Ánimo</span>
         <div class="animo-bar"><div class="animo-fill" style="width:${S.animo}%; background:${colorAnimo}"></div></div>
       </div>
+      ${S.mes <= 4 ? `<div class="leyenda">
+        <b>Aire</b> = meses que aguantás si mañana se corta el ingreso. Es el puntaje.
+        <b>Ánimo</b> = cómo estás. Si se va al piso, la década se termina antes.
+      </div>` : ""}
     </div>`;
 }
 
@@ -4646,6 +4680,18 @@ function pantallaInicio(){
       <p>Tenés veintidós años y diez años por delante: sueldos que llegan tarde, precios que
       llegan temprano, y un montón de decisiones chicas que de a una no parecen nada.</p>
       <p><em>No hay respuestas correctas. Hay consecuencias.</em></p>
+    </div>
+    <!-- Sin esto, nadie sabe qué está tratando de lograr. Un jugador de verdad
+         lo dijo antes que ningún test: entendía las escenas y no el juego. -->
+    <div class="comovaeso">
+      <div class="cv-t">Cómo se gana</div>
+      <p>Se juegan <b>diez años, mes a mes</b>. En cada uno pasa algo y elegís qué hacer.</p>
+      <p>El puntaje no es cuánta plata juntaste: es el <b class="cv-aire">aire</b> — cuántos
+      meses podrías vivir si mañana se corta el ingreso. Empezás con menos de uno.</p>
+      <p>Y hay una segunda cuenta que también se cobra: el <b class="cv-animo">ánimo</b>. Si
+      juntás plata y no vivís nada, la década se termina antes.</p>
+      <p class="cv-fin">Una partida lleva unos 25 minutos. Podés cerrar cuando quieras y
+      sigue donde ibas.</p>
     </div>
     <div class="eyebrow gris">¿Cómo te llamás?</div>
     <input type="text" id="nombre" class="campo" maxlength="18" autocomplete="off"
