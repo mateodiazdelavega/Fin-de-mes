@@ -80,6 +80,47 @@ bajaron de 15 a 13 (de 26), y un jugador que decide bien termina en quiebre el 3
 veces en vez del 8%. El juego quedó algo más blando. A cambio, se termina — y una partida
 de 25 minutos que alguien completa enseña más que una de 34 que abandona.
 
+## Las cuatro cosas de la segunda ronda
+
+**1. Le devolví la dificultad.** Acortar la partida la había ablandado sin querer: menos
+escenas son menos oportunidades de equivocarse, y un jugador que decidía bien pasó del 8% de
+quiebre al 3%. Se compensó con una sola palanca —la inflación de estilo de vida, que corre
+todos los meses y no depende de cuántas cosas pasen: el gasto ahora persigue al sueldo un 50%
+más rápido. Volvió al 6-11% sin agregar una sola pantalla.
+
+**2. La pantalla de cartera.** Los instrumentos donde no tenés nada ocupaban un bloque entero
+cada uno; con los cinco abiertos la pantalla medía tres celulares. Ahora los vacíos van en una
+línea con la perilla al lado, y se despliegan solos cuando les ponés algo: entre 6% y 13% más
+corta según cuántos tengas.
+
+Y tenía un problema peor que el largo: mostraba *"Bono del país +59,7% real"* justo arriba del
+control para ponerle plata. Eso empuja a perseguir lo que ya subió, que es lo contrario de lo
+que el juego quiere enseñar. La solución no fue esconder el número —enseña— sino **hacer que
+el juego lo demuestre**: si le subís la apuesta a lo que venía ganando, la revisión del año
+siguiente te cuenta cómo terminó. Sale bien la mitad de las veces, y eso también es la
+lección: perseguir rendimiento no es malo porque siempre pierda, es malo porque es una moneda
+al aire que se siente como una decisión informada.
+
+**3. Elegir cuánto, no cuál.** Treinta y siete de las treinta y ocho pantallas pedían lo
+mismo: leer y tocar una de tres. Hay decisiones donde el *cuánto* **es** la decisión, y con
+tres opciones fijas esa lección se enuncia en vez de sentirse. La estafa —15% mensual en
+dólares, garantizado— ahora se juega con una perilla: ponés un número, y abajo dice cuántos
+meses de tus gastos estás arriesgando. El que puso un sueldo y el que puso todo tomaron la
+misma mala decisión; solo uno se funde.
+
+La probabilidad de zafar no cambia con el monto —eso es justamente lo que nadie cree—. Lo
+único que cambia es cuánto te cuesta la vez que no zafás.
+
+Estas escenas publican cuatro puntos de la perilla como opciones normales (`Nada`, `Poco`,
+`La mitad`, `Todo`), así el auditor y los bots que miden dificultad siguen viendo una escena
+común. La interfaz usa la perilla; lo que no es interfaz no se enteró.
+
+**4. Sonido.** Cuatro tonos cortos generados con Web Audio, sin un solo archivo — el juego
+sigue siendo un HTML que anda sin internet. **Arranca apagado**: un juego que hace ruido solo
+la primera vez que lo abrís en el colectivo es un juego que se cierra. El tono lo decide lo
+que pasó con tu plata, no la opción que tocaste, así no hubo que anotar un sonido en cada una
+de las 216 opciones.
+
 ## Reglas de diseño
 
 Tres decisiones de diseño sostienen todo lo demás. Si alguna se rompe, el juego enseña

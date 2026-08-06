@@ -189,7 +189,27 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
   border-radius:4px; padding:1px 5px; vertical-align:middle; font-weight:600}
 
 /* ---------- revisión anual de cartera ---------- */
+/* ---------- elegir cuánto ---------- */
+.cuanto{text-align:center; padding:18px 18px 16px}
+.cuanto-lbl{font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--dim); margin-bottom:10px}
+.cuanto-monto{font-size:31px; font-weight:600; font-variant-numeric:tabular-nums;
+  color:var(--oro); line-height:1.1}
+.cuanto-de{font-size:13px; color:var(--muted); margin:5px 0 15px}
+.cuanto .perilla{width:100%}
+.cuanto-pie{font-size:13px; line-height:1.5; color:var(--muted); margin-top:13px; min-height:2.6em}
+.cuanto.firmado{opacity:.6}
+
 .rubro{padding:12px 0; border-bottom:1px solid var(--line)}
+/* Un rubro en cero se aplasta a una línea: nombre y rendimiento arriba, perilla
+   al lado, sin el renglón del monto (que diría $0). Se despliega solo cuando le
+   ponés algo, así la pantalla crece a medida que repartís. */
+.rubro.vacio{padding:7px 0}
+.rubro.vacio .rubro-cab{margin-bottom:4px}
+.rubro.vacio .rubro-n{font-size:13.5px; color:var(--muted)}
+.rubro.vacio .rubro-v{display:none}
+.rubro.vacio .rubro-monto{display:none}
+.rubro.vacio .perilla{opacity:.55}
 .rubro:last-of-type{border-bottom:none}
 .rubro-cab{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:9px}
 .rubro-n{font-size:14.5px}
@@ -268,6 +288,14 @@ h2{font-size:19px; line-height:1.3; margin:0 0 12px; font-weight:600}
   color:var(--dim); margin-bottom:5px}
 .desbloqueo .ttl{font-family:Georgia,serif; font-size:16px; color:var(--oro); margin-bottom:5px}
 .desbloqueo .cpo{font-size:14.5px; line-height:1.55; color:#ddd4ca}
+
+/* El interruptor de sonido: discreto, en la pantalla inicial, apagado de fábrica. */
+.sonido-tog{display:inline-flex; align-items:center; gap:7px; margin-top:16px;
+  background:none; border:1px solid var(--line); border-radius:8px; padding:7px 12px;
+  color:var(--dim); font-family:inherit; font-size:12.5px; cursor:pointer}
+.sonido-tog:hover{border-color:var(--muted); color:var(--muted)}
+.sonido-tog[aria-pressed="true"]{color:var(--oro); border-color:rgba(217,189,122,.4)}
+.son-ico{font-size:13px}
 
 .fade{animation:fade .32s ease}
 @media (prefers-reduced-motion:reduce){ .fade{animation:none} }
@@ -682,6 +710,47 @@ const etiquetasHtml = o => {
     `<span class="etiq ${x.c}">${x.t}</span>`).join("")}</span>` : "";
 };
 
+/* ==========================================================================
+   SONIDO
+   Generado con Web Audio, sin un solo archivo: el juego tiene que seguir siendo
+   un HTML que funciona sin internet. Arranca APAGADO — un juego que hace ruido
+   solo la primera vez que lo abrís en el colectivo es un juego que se cierra.
+   Son cuatro tonos cortos y graves, no una banda de sonido: marcan que algo
+   pasó, y lo que pasó ya lo dice el texto.
+   ========================================================================== */
+let audioCtx = null;
+const suenaOn = () => localStorage.getItem("fdm-sonido") === "1";
+
+function tono(frec, dur, vol, tipo){
+  if(!suenaOn()) return;
+  try{
+    /* El contexto se crea recién en el primer toque: los navegadores no dejan
+       arrancar audio sin un gesto del usuario, y crearlo antes deja un contexto
+       suspendido que nunca suena. */
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = tipo || "sine";
+    osc.frequency.setValueAtTime(frec, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + .012);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + dur + .02);
+  }catch(_){ /* si el navegador no deja, el juego sigue igual */ }
+}
+const suena = {
+  elegir:  () => tono(196, .13, .05, "triangle"),
+  entra:   () => { tono(392, .16, .05); setTimeout(() => tono(587, .22, .04), 90); },
+  sale:    () => tono(147, .26, .055, "triangle"),
+  logro:   () => { tono(523, .14, .05); setTimeout(() => tono(659, .14, .05), 100);
+                   setTimeout(() => tono(784, .3, .045), 200); },
+  final:   () => { tono(262, .3, .05); setTimeout(() => tono(330, .3, .05), 180);
+                   setTimeout(() => tono(392, .6, .045), 360); },
+};
+
 /* ---------- lecturas derivadas ---------- */
 const fechaMes  = () => (MES_INICIAL + S.mes) % 12;
 const fechaAnio = () => ANIO_INICIAL + Math.floor((MES_INICIAL + S.mes) / 12);
@@ -1018,12 +1087,15 @@ function avanzarMes(){
      pasa. Es lo que hace que el que gana el triple igual llegue justo. */
   if(S.trabajo){
     const objetivo = S.sueldo * S.ratioVida;
-    if(objetivo > S.gastos) S.gastos += (objetivo - S.gastos) * .030;
+    /* Al acortar la partida el juego se ablandó solo: menos escenas son menos
+       oportunidades de equivocarse. Se compensa acá y no con más escenas,
+       porque esto corre todos los meses y no depende de cuántas cosas pasen. */
+    if(objetivo > S.gastos) S.gastos += (objetivo - S.gastos) * .045;
     // y el listón sube despacio con la edad: lo que a los 22 era un lujo, a los 30 es normal
     // El tope frena el crecimiento; nunca baja lo que ya estaba. Con Math.min a
     // secas, el origen que arranca en 0,91 se veía empujado a 0,90 — o sea que
     // el sistema le regalaba margen justo al que menos tiene.
-    if(S.ratioVida < .90) S.ratioVida = Math.min(S.ratioVida + .0002, .90);
+    if(S.ratioVida < .90) S.ratioVida = Math.min(S.ratioVida + .00035, .90);
   }
 
   // --- los gastos se ajustan TODOS los meses, el sueldo no ---
@@ -2859,44 +2931,58 @@ const EVENTOS = [
   <b>15% mensual en dólares</b>, garantizado. Hace ocho meses que viene pagando y hay gente
   que ya cobró.</p>
   <p>Te muestra capturas. Te dice que solo entran por recomendación.</p>`,
-  opciones: [
-    { txt:"Entrar con casi todo",
-      sub:"Si paga lo que dice, cambia tu vida.",
-      hacer(){ aprender("estafa"); aprender("suerteHab");
-        const m = Math.max(0,S.pesos)*.8 + venderUsd(S.usd*.8);
-        gastar(Math.max(0,S.pesos)*.9, "A la mesa de inversión");
-        S.golpes++;
-        if(Math.random() < .22){
-          cobrar(m*rnd(1.4,2.0), "Alcanzaste a cobrar"); animo(6);
-          return `<p>Cobrás cuatro meses. Al quinto, cuando estabas por poner más, dejan de
-          contestar.</p><p>Saliste ganando y eso es lo peor que te podía pasar, porque ahora
-          creés que la viste venir. Cobraste con la plata del que entró después de vos.</p>`; }
-        animo(-22); lograr("escarmentado");
-        return `<p>Cobrás dos meses. Al tercero el tipo "está de viaje". Al cuarto el grupo de
-        WhatsApp lo cierra un administrador.</p>
-        <p>No existía ninguna inversión. A los primeros les pagaban con la plata de los que
-        entrábamos después, y vos entraste tarde. Rendimiento alto, garantizado y sin riesgo:
-        los tres juntos nunca existen.</p>`; } },
-    { txt:"Entrar con poco, para probar",
-      sub:"Un sueldo. Lo que te bancás perder.",
-      hacer(){ aprender("tamApuesta"); aprender("estafa");
-        const m = Math.min(S.sueldo, Math.max(0,S.pesos)); gastar(m,"Prueba en la mesa");
-        S.golpes++;
-        if(Math.random() < .3){ cobrar(m*rnd(1.2,1.6),"Cobraste algo"); return `<p>Cobrás unos
-        meses y te salís antes de que se caiga.</p><p>Tuviste suerte. Que haya salido bien no
-        quiere decir que estuvo bien: el tamaño de la apuesta es lo que te salvó, no el criterio.</p>`; }
-        animo(-6); lograr("escarmentado");
-        return `<p>Se cae a los tres meses y perdés lo que pusiste.</p>
-        <p>Duele un mes y se te pasa. Eso es exactamente lo que tiene que pasar cuando apostás
-        solo lo que te bancás perder.</p>`; } },
-    { txt:"No entrar",
-      sub:"Nadie regala 15% mensual en dólares.",
-      hacer(){ aprender("estafa");
+  /* Acá no se decide si entrás: se decide con cuánto. Es la única forma de que
+     la lección del tamaño de la apuesta se sienta, porque la tenés que firmar
+     vos con un número en vez de elegir la etiqueta "con poco". */
+  cuanto: {
+    pregunta: "¿Cuánto le ponés?",
+    tope: () => Math.max(0, S.pesos) + S.usd * S.dolar,
+    arranque: 0,
+    boton: pct => pct === 0 ? "No entrar" : "Poner esa plata",
+    pie: (pct, m) => pct === 0
+      ? "Nadie regala 15% mensual en dólares."
+      : `Si se cae, perdés ${fmt(m)}. Eso son <b>${(m / Math.max(1, egresoFijo())).toFixed(1).replace(".",",")} meses</b> de tus gastos.`,
+    hacer(frac, m){
+      aprender("estafa");
+      if(frac === 0)
         return `<p>Le decís que no. Durante seis meses escuchás cómo a otros les va bárbaro y
         te sentís un poco tonto.</p>
         <p>Al séptimo mes deja de contestar el teléfono y tu primo pierde los ahorros de cuatro
-        años. La sensación de estar perdiéndote algo es parte del negocio.</p>`; } },
-  ]
+        años. Rendimiento alto, garantizado y sin riesgo: los tres juntos nunca existen.</p>`;
+
+      aprender("tamApuesta"); aprender("suerteHab"); S.golpes++;
+      /* Se cobra primero de los pesos y recién después se venden dólares, que es
+         el orden en que lo haría cualquiera. */
+      const dePesos = Math.min(Math.max(0, S.pesos), m);
+      gastar(dePesos, "A la mesa de inversión");
+      const falta = m - dePesos;
+      if(falta > 0) venderUsd(Math.min(S.usd, falta / S.dolar));
+
+      const meses = m / Math.max(1, egresoFijo());
+      /* La probabilidad de zafar no depende de cuánto pongas — eso es
+         justamente lo que nadie cree. Lo que cambia con el monto es cuánto te
+         cuesta la vez que no zafás. */
+      if(Math.random() < .26){
+        cobrar(m * rnd(1.3, 1.9), "Alcanzaste a cobrar"); animo(6);
+        return `<p>Cobrás cuatro meses. Al quinto, cuando estabas por poner más, dejan de
+        contestar — pero ya habías sacado más de lo que pusiste.</p>
+        <p>Saliste ganando y eso es lo peor que te podía pasar, porque ahora creés que la viste
+        venir. Cobraste con la plata del que entró después de vos. Con las mismas cartas, tres
+        de cada cuatro veces esto termina mal.</p>`;
+      }
+      lograr("escarmentado");
+      animo(meses > 6 ? -24 : meses > 2 ? -12 : -6);
+      return `<p>Cobrás dos meses. Al tercero el tipo "está de viaje". Al cuarto el grupo de
+      WhatsApp lo cierra un administrador.</p>
+      <p>No existía ninguna inversión: a los primeros les pagaban con la plata de los que
+      entraban después. Perdiste ${fmt(m)}, que son
+      ${meses.toFixed(1).replace(".",",")} meses de tus gastos.
+      ${meses > 6
+        ? "Con eso no se vuelve rápido. La decisión de entrar fue mala; la de entrar con tanto es la que te dejó sin piso."
+        : "Duele y se pasa, y esa es toda la diferencia: no la tomaste mejor que el que puso todo, apostaste menos."}</p>`;
+    },
+  },
+  opciones: []
 },
 {
   /* La red de contención del final por quiebre. Aparece con prioridad cuando el
@@ -3831,6 +3917,24 @@ const EVENTOS = [
 },
 ];
 
+/* Las escenas de tipo "cuánto" se juegan con una perilla, pero todo lo demás
+   —el auditor, los bots que miden dificultad, el que cuenta repeticiones— habla
+   en opciones. En vez de enseñarle la forma nueva a cada uno, la escena publica
+   cuatro puntos de esa perilla como opciones normales. La interfaz usa la
+   perilla; lo que no es interfaz sigue viendo una escena común. */
+const PUNTOS_CUANTO = [
+  { txt:"Nada",      f:0    },
+  { txt:"Poco",      f:0.15 },
+  { txt:"La mitad",  f:0.5  },
+  { txt:"Todo",      f:1    },
+];
+[...HITOS, ...EVENTOS].filter(e => e.cuanto).forEach(e => {
+  e.opciones = PUNTOS_CUANTO.map(pt => ({
+    txt: pt.txt,
+    hacer(){ const tope = e.cuanto.tope(); return e.cuanto.hacer(pt.f, Math.round(tope * pt.f)); },
+  }));
+});
+
 /* ==========================================================================
    MOTOR DE JUEGO
    ========================================================================== */
@@ -4072,13 +4176,33 @@ function pantallaCartera(){
   /* Veredicto del pronóstico del año pasado. Se resuelve acá, en la misma
      pantalla donde vas a volver a arriesgar: la lección se siente más cuando el
      error todavía está caliente y tenés que decidir de nuevo igual. */
+  /* Si el año pasado le subiste la apuesta a lo que venía ganando, acá se ve
+     cómo terminó. No hay sermón: está el número. La mitad de las veces sale
+     bien, y eso también es parte de la lección — perseguir rendimiento no es
+     malo porque siempre pierda, es malo porque es una moneda al aire que se
+     siente como una decisión informada. */
   let veredicto = "";
+  if(S.persiguio && rend && rend[S.persiguio.id] != null){
+    const r = rend[S.persiguio.id];
+    const nom = (ESCALERA.find(x => x.id === S.persiguio.id) || {}).n || S.persiguio.id;
+    const bien = r >= 0;
+    veredicto += `<div class="veredicto ${bien ? "bien" : "mal"}">
+      <div class="veredicto-cab">El año pasado le subiste la apuesta a ${nom.toLowerCase()}</div>
+      <div class="veredicto-cpo">Venía de ser lo que más había rendido. Este año hizo
+        <b class="${bien ? "pos" : "neg"}">${r >= 0 ? "+" : "−"}${(Math.abs(r)*100).toFixed(1).replace(".",",")}% real</b>.
+        ${bien
+          ? "Salió bien. Sabelo igual: lo que más rindió el año pasado es también lo que más caro está hoy, y acertar dos veces seguidas es suerte, no método."
+          : "Eso es perseguir rendimiento: comprar caro lo que ya subió. El número de la izquierda es historia, nunca pronóstico."}</div>
+    </div>`;
+    aprender("suerteHab");
+    S.persiguio = null;
+  }
   if(S.pronostico && rend){
     const gano = ganadorDelAnio();
     const acerto = gano === S.pronostico.elegido;
     S.pronosticos.push({ mes: S.mes, elegido: S.pronostico.elegido, gano, acerto });
     if(acerto) lograr("adivino");
-    veredicto = `<div class="veredicto ${acerto ? "bien" : "mal"}">
+    veredicto += `<div class="veredicto ${acerto ? "bien" : "mal"}">
       <div class="veredicto-cab">${acerto ? "Le acertaste" : "No la viste venir"}</div>
       <div class="veredicto-cpo">Hace un año apostaste a <b>${nombreRubro(S.pronostico.elegido)}</b>
         y el que más rindió fue <b>${nombreRubro(gano)}</b>${acerto ? "." : ", con "
@@ -4117,7 +4241,12 @@ function pantallaCartera(){
         const pctActual = total > 0 ? v[r.id] / total * 100 : 0;
         const obj = objetivoCartera[r.id] || 0;
         const ren = rend ? rend[r.id] : null;
-        return `<div class="rubro">
+        /* Los rubros donde no tenés nada y no pensás poner nada ocupaban un
+           bloque entero cada uno: con cinco instrumentos abiertos la pantalla
+           medía tres celulares. Vacíos van en una línea, con la perilla al lado,
+           así siguen estando a un solo gesto de distancia. */
+        const vacio = v[r.id] < 1 && obj === 0;
+        return `<div class="rubro${vacio ? " vacio" : ""}">
           <div class="rubro-cab">
             <span class="rubro-n">${r.n}
               ${ren != null ? `<span class="rubro-ren ${ren >= 0 ? "pos" : "neg"}">${
@@ -4168,6 +4297,11 @@ function pantallaCartera(){
            arrastrás más allá de lo que tenés libre, la perilla vuelve sola. */
         if(+$s.value !== pct) $s.value = pct;
         $s.style.setProperty("--fill", pct + "%");
+        /* El rubro vacío se despliega en cuanto le ponés algo, y se vuelve a
+           aplastar si lo dejás en cero. Se hace acá y no redibujando, porque
+           redibujar le sacaría la perilla al dedo a mitad del arrastre. */
+        const $r = $s.closest(".rubro");
+        if($r) $r.classList.toggle("vacio", v[r.id] < 1 && pct === 0);
       }
     });
     const $saldo = document.getElementById("saldo");
@@ -4199,6 +4333,15 @@ function pantallaCartera(){
   };
   const ap = document.getElementById("aplicar");
   if(ap) ap.onclick = () => {
+    /* Antes de mover nada, anotar si le estás subiendo la apuesta a lo que
+       acaba de ganar. El año que viene esta misma pantalla te va a contar cómo
+       terminó, que es la única forma honesta de enseñar que el rendimiento
+       pasado no es un pronóstico: mostrándolo, no diciéndolo. */
+    const gano = rend ? ganadorDelAnio() : null;
+    if(gano && (objetivoCartera[gano] || 0) > Math.round((v[gano] || 0) / (total || 1) * 100) + 4)
+      S.persiguio = { id: gano, mes: S.mes };
+    else S.persiguio = null;
+
     const movido = rebalancear(objetivoCartera);
     const usados = Object.values(objetivoCartera).filter(x => x >= 10).length;
     if(usados >= 3) aprender("diversif");
@@ -4271,11 +4414,85 @@ function pantallaInterludio(){
   document.getElementById("seguir").onclick = siguiente;
 }
 
+/* ==========================================================================
+   ELEGIR CUÁNTO, NO CUÁL
+   Treinta y siete de las treinta y ocho pantallas de una partida piden lo
+   mismo: leer y tocar una de tres opciones. Esta pide otra cosa — poner un
+   número — y no es variedad decorativa: hay decisiones donde el cuánto ES la
+   decisión. En una estafa, entrar o no entrar importa menos que con cuánto
+   entrás; el que puso un sueldo y el que puso todo tomaron la misma mala
+   decisión y solo uno se funde. Con tres opciones fijas esa lección se enuncia.
+   Con una perilla, se firma.
+   ========================================================================== */
+function pantallaCuanto(esc){
+  pintarHud();
+  const c = esc.cuanto;
+  const tope = c.tope();
+  let pct = c.arranque != null ? c.arranque : 0;
+  const monto = () => Math.round(tope * pct / 100);
+
+  $app.innerHTML = `<div class="fade">
+    ${bloqueResumenes()}
+    ${bloqueDesbloqueos()}
+    <div class="card">
+      <div class="texto serif">${textoDe(esc)}</div>
+    </div>
+    <div class="card cuanto">
+      <div class="cuanto-lbl">${c.pregunta}</div>
+      <div class="cuanto-monto" id="cuantoMonto">${fmt(monto())}</div>
+      <div class="cuanto-de">de ${fmt(tope)} · <span id="cuantoPct">${pct}%</span></div>
+      <input type="range" class="perilla" id="cuantoSl" min="0" max="100" step="1"
+             value="${pct}" style="--fill:${pct}%" aria-label="${c.pregunta}">
+      <div class="cuanto-pie" id="cuantoPie">${c.pie ? c.pie(pct, monto()) : ""}</div>
+    </div>
+    <div class="ops">
+      <button class="btn" id="confirmar">${c.boton || "Confirmar"}</button>
+    </div>
+    <div id="resultado"></div></div>`;
+  pendientes = [];
+
+  const $sl = document.getElementById("cuantoSl");
+  const refrescar = () => {
+    pct = +$sl.value;
+    $sl.style.setProperty("--fill", pct + "%");
+    document.getElementById("cuantoMonto").textContent = fmt(monto());
+    document.getElementById("cuantoPct").textContent = pct + "%";
+    const $pie = document.getElementById("cuantoPie");
+    if($pie && c.pie) $pie.innerHTML = c.pie(pct, monto());
+    const $b = document.getElementById("confirmar");
+    if($b && c.boton) $b.textContent = typeof c.boton === "function" ? c.boton(pct) : c.boton;
+  };
+  $sl.addEventListener("input", refrescar);
+  refrescar();
+
+  document.getElementById("confirmar").onclick = () => {
+    const antesPesos = patrimonio();
+    const txt = c.hacer(pct / 100, monto()) || "";
+    const dif = patrimonio() - antesPesos;
+    if(Math.abs(dif) > egresoFijo() * .25) (dif > 0 ? suena.entra : suena.sale)();
+    else suena.elegir();
+    guardar();
+    document.querySelector(".cuanto").classList.add("firmado");
+    $sl.disabled = true;
+    document.getElementById("confirmar").remove();
+    const avisos = S.avisos.slice(); S.avisos = [];
+    document.getElementById("resultado").innerHTML = `
+      <div class="conseq serif fade">${txt}</div>
+      ${avisos.map(a => `<div class="aviso">${a}</div>`).join("")}
+      ${bloqueDesbloqueos()}
+      <button class="btn" id="seguir">Seguir</button>`;
+    document.getElementById("seguir").onclick = siguiente;
+    pintarHud();
+    document.getElementById("resultado").scrollIntoView({ behavior:"smooth", block:"nearest" });
+  };
+}
+
 /* La consecuencia aparece acá mismo, debajo de la opción que elegiste, en vez de
    reemplazar la pantalla entera. Así quedan juntos el cierre del mes, la escena,
    lo que elegiste y lo que pasó — que es como se lee una historia y no una
    sucesión de tarjetas sueltas. */
 function pantallaEscena(esc){
+  if(esc.cuanto) return pantallaCuanto(esc);
   pintarHud();
   const ops = esc.opciones.filter(o => !o.cond || o.cond());
   const desbloq = bloqueDesbloqueos();
@@ -4296,7 +4513,14 @@ function pantallaEscena(esc){
   $app.querySelectorAll(".op").forEach(b => {
     b.onclick = () => {
       const o = ops[+b.dataset.i];
+      const antesPesos = patrimonio();
       const txt = o.hacer() || "";
+      /* El tono lo decide lo que pasó con la plata, no la opción elegida: así
+         no hay que anotar un sonido en cada una de las 216. */
+      const dif = patrimonio() - antesPesos;
+      if(Math.abs(dif) > egresoFijo() * .25) (dif > 0 ? suena.entra : suena.sale)();
+      else suena.elegir();
+      if(S.nuevos.some(n => n.tipo === "logro")) setTimeout(suena.logro, 260);
       guardar();
 
       // Las opciones no elegidas se van; la elegida queda como encabezado.
@@ -4797,6 +5021,9 @@ function pantallaInicio(){
     ${col.partidas ? `<p class="nota">Llevás ${col.partidas}
       ${col.partidas === 1 ? "vida jugada" : "vidas jugadas"} y probaste ${combos} de
       ${totalCombos} maneras de arrancar.</p>` : ""}
+    <button class="sonido-tog" id="sonidoTog" aria-pressed="${suenaOn()}">
+      <span class="son-ico">${suenaOn() ? "♪" : "○"}</span>
+      Sonido ${suenaOn() ? "activado" : "apagado"}</button>
     <p class="nota">Los precios, los sueldos y la inflación son inventados pero verosímiles.
       El país que te toca se sortea al empezar y cambia sin avisar, como el de verdad.</p>
   </div>`;
@@ -4813,6 +5040,16 @@ function pantallaInicio(){
   $n.focus();
   const sp = document.getElementById("seguirPartida");
   if(sp) sp.onclick = () => { if(cargar()) siguiente(); };
+
+  const $son = document.getElementById("sonidoTog");
+  if($son) $son.onclick = () => {
+    const nuevo = !suenaOn();
+    localStorage.setItem("fdm-sonido", nuevo ? "1" : "0");
+    $son.setAttribute("aria-pressed", String(nuevo));
+    $son.querySelector(".son-ico").textContent = nuevo ? "♪" : "○";
+    $son.lastChild.textContent = " Sonido " + (nuevo ? "activado" : "apagado");
+    if(nuevo) suena.entra();   // que se escuche qué acabás de prender
+  };
 }
 
 function pantallaVivienda(){
